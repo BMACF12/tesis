@@ -1,0 +1,8 @@
+Indicador 4_Syllabus:
+Este indicador corresponde a los documentos de planificación académica de una materia. Incluye los sílabos (syllabus), planes de estudio, programas de asignatura donde se detallen los resultados de aprendizaje, los contenidos de las unidades, la bibliografía y las metodologías de evaluación que usará el profesor.
+
+Indicador 5_Asistencia:
+Este indicador corresponde a los registros de asistencia de los estudiantes. Incluye listados, matrices o tablas que contengan los nombres de los alumnos y las fechas en las que asistieron o faltaron a clases.
+
+Indicador 6_Calificaciones:
+Este indicador corresponde a las notas de los estudiantes. Incluye actas de calificaciones, registros de notas de parciales, rúbricas de evaluación llenas y reportes de aprobación o reprobación de la materia.

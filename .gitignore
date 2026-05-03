@@ -1,0 +1,20 @@
+# Variables de entorno (¡El escudo de tus claves!)
+.env
+*.env
+
+# Entornos virtuales de Python
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Carpetas pesadas o temporales del Backend
+chroma_data/
+documentos_prueba/
+temp_upload.pdf
+
+# Frontend (Next.js)
+node_modules/
+.next/
+out/
+build/
