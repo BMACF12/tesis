@@ -8,6 +8,7 @@ interface ResultadoAPI {
   veredicto: Veredicto;
   porcentaje_estimado: string | number;
   justificacion: string;
+  indicador_evaluado: string;
 }
 
 export default function EvaluadorCACES() {
@@ -238,9 +239,21 @@ export default function EvaluadorCACES() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.2 }}
-                      className={`text-3xl md:text-4xl font-black ${getThemeVars(result.veredicto).textInfo} leading-tight`}
+                      className={`text-3xl md:text-4xl font-black ${getThemeVars(result.veredicto).textInfo} leading-tight mb-3`}
                     >
                       {result.veredicto}
+                    </motion.div>
+                    
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                      className="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/50 shadow-sm"
+                    >
+                      <svg className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                      <span className="text-xs font-medium text-slate-300 tracking-wide line-clamp-1" title={result.indicador_evaluado}>
+                        {result.indicador_evaluado}
+                      </span>
                     </motion.div>
                   </div>
                   

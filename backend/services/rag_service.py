@@ -59,6 +59,7 @@ REGLAS DE EVALUACIÓN (CRITERIO EXPERTO):
 
 Responde SIEMPRE en formato JSON válido con esta estructura exacta, sin texto adicional:
 {{
+"indicador_evaluado": "Extrae y escribe aquí el nombre del indicador que evaluaste (ej. Indicador 4. Syllabus)",
 "veredicto": "CUMPLE" o "CUMPLE PARCIALMENTE" o "NO CUMPLE",
 "porcentaje_estimado": "Asigna un porcentaje del 0 al 100 de cuánto cumple",
 "justificacion": "Explica qué elementos se encontraron (aunque tengan otros nombres), qué falta exactamente y por qué le diste esa calificación..."
