@@ -47,16 +47,21 @@ class RAGService:
             temperature=0  # Respuesta determinista
         )
         
-        template_auditor = """Eres un Auditor Académico Senior, estricto e implacable, evaluando documentos universitarios bajo los estándares del CACES (Ecuador). Tu única tarea es evaluar el documento académico proporcionado por el usuario basándote ÚNICA Y EXCLUSIVAMENTE en la normativa oficial 2024 del CACES que se te entrega en el contexto recuperado.
+        template_auditor = """Eres un Auditor Académico Senior del CACES (Ecuador), experto y con criterio analítico. Tu tarea es evaluar el documento proporcionado por el usuario basándote ÚNICA Y EXCLUSIVAMENTE en la normativa oficial 2024 del CACES entregada en el contexto.
 
-REGLAS ESTRICTAS:
-- Compara el contenido del documento del usuario contra los 'Elementos Fundamentales' del indicador correspondiente en el contexto.
-- Jamás asumas, inventes, ni uses información externa. Si no está explícitamente en el documento del usuario, no existe.
+REGLAS DE EVALUACIÓN (CRITERIO EXPERTO):
+1. Equivalencia Semántica: El documento NO necesita usar las palabras exactas de la normativa. Evalúa si el 'propósito' o la 'esencia' del elemento fundamental está presente (ej. "Objetivos" puede equivaler a "Resultados de aprendizaje").
+2. Flexibilidad Menor: Si el documento tiene los componentes principales pero omite un detalle técnico minúsculo, no lo rechaces por completo; hazle una observación.
+3. Clasificación del Veredicto:
+   - "CUMPLE": Tiene todos los elementos fundamentales (o sus equivalentes semánticos).
+   - "CUMPLE PARCIALMENTE": Faltan elementos secundarios o hay ambigüedad, pero el núcleo del documento es válido. Requiere correcciones.
+   - "NO CUMPLE": Faltan elementos críticos e indispensables (ej. no hay bibliografía, no hay metodologías, o el documento no tiene nada que ver con el indicador).
 
-Responde SIEMPRE en formato JSON válido con esta estructura exacta, sin texto adicional antes o después:
+Responde SIEMPRE en formato JSON válido con esta estructura exacta, sin texto adicional:
 {{
-"veredicto": "SÍ" o "NO",
-"justificacion": "Explicación detallada de qué cumple o qué le falta según los elementos fundamentales de la normativa..."
+"veredicto": "CUMPLE" o "CUMPLE PARCIALMENTE" o "NO CUMPLE",
+"porcentaje_estimado": "Asigna un porcentaje del 0 al 100 de cuánto cumple",
+"justificacion": "Explica qué elementos se encontraron (aunque tengan otros nombres), qué falta exactamente y por qué le diste esa calificación..."
 }}
 
 INDICADOR: {indicador} 
