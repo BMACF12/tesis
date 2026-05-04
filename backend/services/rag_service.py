@@ -28,8 +28,32 @@ class RAGService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error en la extracción del PDF: {str(e)}")
 
-        # 2. Fase de Recuperación (Retrieval - ChromaDB)
-        query_text = texto_completo[:1000]
+        # 2. Fase de Recuperación (Retrieval - Enrutador Semántico Estricto)
+        texto_muestra = texto_completo[:1500].upper()
+        
+        mapeo_indicadores = {
+            ("SÍLABO", "SYLLABUS", "PROGRAMA DE ASIGNATURA"): "Estándar y elementos fundamentales del indicador de Syllabus",
+            ("MALLA CURRICULAR",): "Estándar y elementos fundamentales del indicador de Malla curricular",
+            ("PROYECTO CURRICULAR", "DISEÑO CURRICULAR", "MACRO CURRÍCULO"): "Estándar y elementos fundamentales del indicador de Proyecto curricular",
+            ("PERFIL DE EGRESO", "PERFIL PROFESIONAL"): "Estándar y elementos fundamentales del indicador de Perfil de egreso",
+            ("METODOLOGÍA Y RECURSOS", "PORTAFOLIO DOCENTE"): "Estándar y elementos fundamentales del indicador de Metodología y recursos de aprendizaje",
+            ("PRÁCTICAS FORMATIVAS", "ESCENARIOS DE APRENDIZAJE", "LABORATORIOS"): "Estándar y elementos fundamentales del indicador de Escenarios de prácticas formativas",
+            ("TECNOLOGÍAS PARA EL APRENDIZAJE", "TAC", "ENTORNOS VIRTUALES"): "Estándar y elementos fundamentales del indicador de Tecnologías para el aprendizaje y conocimiento",
+            ("AFINIDAD DEL PERSONAL", "FORMACIÓN DE POSGRADO"): "Estándar y elementos fundamentales del indicador de Afinidad del personal académico",
+            ("TITULAR PERMANENTE", "NOMBRAMIENTO DEFINITIVO", "CONCURSO DE MERECIMIENTOS"): "Estándar y elementos fundamentales del indicador de Personal académico titular permanente",
+            ("EVALUACIÓN INTEGRAL", "DESEMPEÑO DOCENTE", "EVALUACIÓN DEL DESEMPEÑO"): "Estándar y elementos fundamentales del indicador de Evaluación integral del desempeño del personal académico"
+        }
+        
+        query_text = None
+        for claves, valor_query in mapeo_indicadores.items():
+            if any(clave in texto_muestra for clave in claves):
+                query_text = valor_query
+                break
+                
+        # Fallback si no hay coincidencias
+        if not query_text:
+            query_text = texto_completo[:1000]
+            
         vector_db = Chroma(
             persist_directory=self.persist_directory,
             embedding_function=self.embeddings

@@ -22,13 +22,27 @@ async def evaluar_documento(file: UploadFile = File(...)):
         with open(temp_pdf_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # 3. Delegar TODA la lógica de negocio al servicio RAG
-        resultado = rag_service.procesar_documento(temp_pdf_path)
-        return resultado
+        try:
+            # 3. Delegar TODA la lógica de negocio al servicio RAG
+            resultado = rag_service.procesar_documento(temp_pdf_path)
+            
+            # 4. Fase Final: Orquestador de Archivos Físicos (Triage)
+            from services.orchestrator_service import enrutar_documento
+            enrutar_documento(resultado, temp_pdf_path, file.filename)
+            
+            return resultado
+        except Exception as e:
+            import traceback
+            print("="*50)
+            print(f"🚨 ERROR FATAL AL PROCESAR: {str(e)}")
+            traceback.print_exc()
+            print("="*50)
+            raise HTTPException(status_code=500, detail=f"Error en procesamiento de IA u Orquestador: {str(e)}")
 
     except HTTPException as http_exc:
         raise http_exc
     except Exception as e:
+        print(f"🚨 ERROR GENERAL: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
         
     finally:

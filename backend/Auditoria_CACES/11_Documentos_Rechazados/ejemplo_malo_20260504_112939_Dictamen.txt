@@ -1,0 +1,9 @@
+=== DICTAMEN OFICIAL DE AUDITORÍA CACES ===
+Fecha: 2026-05-04 11:29:39
+Documento Analizado: ejemplo_malo.pdf
+Regla/Indicador: Indicador 4: Syllabus
+Veredicto IA: NO CUMPLE
+Porcentaje Estimado: 10%
+--------------------------------------------------
+JUSTIFICACIÓN TÉCNICA:
+El documento proporcionado carece de la mayoría de los elementos fundamentales establecidos en la normativa. No se menciona la coherencia con la malla curricular, no hay descripción clara de resultados de aprendizaje, contenidos, metodologías, técnicas, recursos, bibliografía actualizada y mecanismos de evaluación. Solo se proporciona una descripción muy general de la materia y el horario de clases. No se menciona la aplicación de políticas para guiar al profesorado, la interrelación de la teoría y la práctica, la difusión y disponibilidad del syllabus, ni el seguimiento y evaluación para la mejora continua. El documento es muy básico y no cumple con los requisitos establecidos en la normativa.

@@ -1,0 +1,9 @@
+=== DICTAMEN OFICIAL DE AUDITORÍA CACES ===
+Fecha: 2026-05-04 11:09:17
+Documento Analizado: malla isoj 202450 act.pdf
+Regla/Indicador: Indicador 3: Malla curricular
+Veredicto IA: CUMPLE PARCIALMENTE
+Porcentaje Estimado: 80%
+--------------------------------------------------
+JUSTIFICACIÓN TÉCNICA:
+El documento proporcionado incluye la mayoría de los elementos fundamentales requeridos para el Indicador 3: Malla curricular. Se observa la distribución de asignaturas, identificación de prerrequisitos y correquisitos, y número de créditos. Además, se menciona la correspondencia con el perfil de egreso y el rediseño curricular. Sin embargo, no se encuentra una sección explícita que describa las políticas que orientan el diseño o rediseño de la malla curricular, ni un plan de seguimiento y evaluación de la malla curricular. La estructura y presentación del documento son complejas y dificultan la identificación clara de algunos elementos, pero en general, se cumple con los requisitos principales.
