@@ -10,8 +10,8 @@ load_dotenv()
 
 def main():
     # Rutas relativas al directorio actual (backend/)
-    file_path = "indicadores_base.txt"
-    persist_directory = "chroma_data"
+    file_path = "../data/caces_2024_oficial.txt"
+    persist_directory = "../chroma_data"
     
     print(f"Intentando cargar el documento: {file_path}...")
     
@@ -29,9 +29,9 @@ def main():
         # Dividimos el texto en chunks; se configuran tamaños pequeños por la naturaleza de los indicadores cortos
         print("Dividiendo el texto en fragmentos (chunks)...")
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=400,        # Tamaño máximo de caracteres por chunk
-            chunk_overlap=50,      # Superposición para no perder contexto entre chunks
-            separators=["\n\n", "\n", ".", " ", ""]
+            chunk_size=1200,      # Aumentamos el tamaño para que quepa un indicador entero
+            chunk_overlap=200,    # Solapamiento para no perder contexto
+            separators=["=== INDICADOR", "\n\n", "\n", " ", ""] # Separadores estratégicos
         )
         
         chunks = text_splitter.split_documents(documents)

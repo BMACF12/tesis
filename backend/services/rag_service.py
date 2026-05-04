@@ -47,13 +47,21 @@ class RAGService:
             temperature=0  # Respuesta determinista
         )
         
-        template_auditor = """Eres un auditor estricto del CACES. Tu tarea es revisar este DOCUMENTO y verificar si cumple con los requisitos exigidos en el INDICADOR. 
+        template_auditor = """Eres un Auditor Académico Senior, estricto e implacable, evaluando documentos universitarios bajo los estándares del CACES (Ecuador). Tu única tarea es evaluar el documento académico proporcionado por el usuario basándote ÚNICA Y EXCLUSIVAMENTE en la normativa oficial 2024 del CACES que se te entrega en el contexto recuperado.
+
+REGLAS ESTRICTAS:
+- Compara el contenido del documento del usuario contra los 'Elementos Fundamentales' del indicador correspondiente en el contexto.
+- Jamás asumas, inventes, ni uses información externa. Si no está explícitamente en el documento del usuario, no existe.
+
+Responde SIEMPRE en formato JSON válido con esta estructura exacta, sin texto adicional antes o después:
+{{
+"veredicto": "SÍ" o "NO",
+"justificacion": "Explicación detallada de qué cumple o qué le falta según los elementos fundamentales de la normativa..."
+}}
 
 INDICADOR: {indicador} 
 
-DOCUMENTO: {documento} 
-
-Responde únicamente con un SÍ o NO al principio, seguido de un salto de línea y luego una breve justificación de 3 líneas."""
+DOCUMENTO: {documento}"""
 
         prompt = PromptTemplate(
             input_variables=["indicador", "documento"],
@@ -66,13 +74,28 @@ Responde únicamente con un SÍ o NO al principio, seguido de un salto de línea
             "documento": texto_completo
         })
         
-        # 4. Procesar y estructurar la respuesta del LLM
+        # 4. Procesar y estructurar la respuesta JSON del LLM
         contenido_llm = respuesta.content.strip()
-        es_si = contenido_llm.upper().startswith("SÍ") or contenido_llm.upper().startswith("SI")
-        veredicto = "SÍ" if es_si else "NO"
-        justificacion = contenido_llm.replace("SÍ", "", 1).replace("SI", "", 1).replace("NO", "", 1).strip(" \n-.:")
-
-        return {
-            "veredicto": veredicto,
-            "justificacion": justificacion
-        }
+        
+        import json
+        try:
+            # Limpiar backticks de markdown si el modelo los añade por error
+            if contenido_llm.startswith("```json"):
+                contenido_llm = contenido_llm.replace("```json", "", 1)
+                if contenido_llm.endswith("```"):
+                    contenido_llm = contenido_llm[:-3]
+                contenido_llm = contenido_llm.strip()
+            elif contenido_llm.startswith("```"):
+                contenido_llm = contenido_llm.replace("```", "", 1)
+                if contenido_llm.endswith("```"):
+                    contenido_llm = contenido_llm[:-3]
+                contenido_llm = contenido_llm.strip()
+                
+            resultado_json = json.loads(contenido_llm)
+            return resultado_json
+        except json.JSONDecodeError:
+            # Fallback en caso de que el modelo falle en el formato
+            return {
+                "veredicto": "ERROR",
+                "justificacion": f"El LLM no generó un JSON válido. Salida: {contenido_llm}"
+            }

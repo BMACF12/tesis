@@ -1,0 +1,128 @@
+=== INDICADOR 1: Perfil de egreso ===
+DIMENSIÓN: Currículo
+ESTÁNDAR: El perfil de egreso establece de manera clara y específica los resultados de aprendizaje que el estudiante alcanzará al término de su proceso formativo, en concordancia con el Modelo educativo.
+ELEMENTOS FUNDAMENTALES:
+1. Define de forma clara y específica los resultados de aprendizaje en concordancia con el objeto de la carrera y necesidades de la sociedad.
+2. Se define en el contexto de los dominios teóricos, metodológicos y técnicos-pedagógicos.
+3. Elaborado participativamente con aporte de expertos externos, organizaciones profesionales, empleadores y graduados.
+4. Los saberes teóricos y prácticos declarados son verificables.
+5. Se realiza seguimiento y evaluación para la mejora continua.
+FUENTES DE INFORMACIÓN:
+- Proyecto curricular de la carrera.
+- Evidencia de aportes de actores externos.
+- Macro currículo de la carrera vigente.
+
+=== INDICADOR 2: Proyecto curricular ===
+DIMENSIÓN: Currículo
+ESTÁNDAR: El proyecto o diseño curricular es coherente con el modelo educativo y misión institucional, describiendo metodologías, ambientes y recursos pedagógicos.
+ELEMENTOS FUNDAMENTALES:
+1. Es coherente con el modelo educativo, misión y resultados de aprendizaje del perfil de egreso.
+2. Aplica políticas para la actualización y mejora continua del currículo.
+3. Describe la pertinencia de la carrera ante problemáticas globales, nacionales y demanda ocupacional.
+4. Involucra a académicos y profesionales con experiencia para facilitar la flexibilización e internacionalización.
+5. Describe requisitos de ingreso/egreso, mecanismos de evaluación, medios y recursos pedagógicos.
+6. Realiza seguimiento y evaluación para acciones de mejora continua.
+FUENTES DE INFORMACIÓN:
+- Proyecto curricular de la carrera vigente.
+- Modelo educativo y pedagógico vigente.
+
+=== INDICADOR 3: Malla curricular ===
+DIMENSIÓN: Currículo
+ESTÁNDAR: Las asignaturas en la malla curricular son coherentes con los resultados de aprendizaje definidos en el perfil de egreso.
+ELEMENTOS FUNDAMENTALES:
+1. Aplica políticas que orientan el diseño o rediseño de la malla curricular.
+2. Incluye distribución de asignaturas, identifica prerrequisitos y correquisitos, y número de créditos.
+3. Las asignaturas guardan correspondencia con el rediseño curricular y el perfil de egreso.
+4. Se realiza seguimiento y evaluación de la malla curricular.
+FUENTES DE INFORMACIÓN:
+- Mallas curriculares vigentes.
+- Documentación de políticas de diseño de malla.
+
+=== INDICADOR 4: Syllabus ===
+DIMENSIÓN: Currículo
+ESTÁNDAR: Los syllabus son coherentes con la malla curricular y permiten alcanzar los resultados de aprendizaje. Describen contenidos, metodologías, bibliografía y evaluación.
+ELEMENTOS FUNDAMENTALES:
+1. Son coherentes con la malla curricular y permiten alcanzar los resultados de aprendizaje.
+2. Aplica políticas para guiar al profesorado en su elaboración.
+3. Reflejan la interrelación de la teoría y la práctica.
+4. Describen de manera clara resultados de aprendizaje, contenidos, metodologías, técnicas, recursos, bibliografía actualizada y mecanismos de evaluación.
+5. Son difundidos y están disponibles de forma permanente para estudiantes y profesores.
+6. Se realiza seguimiento y evaluación para la mejora continua.
+FUENTES DE INFORMACIÓN:
+- Syllabus ejecutados durante el periodo.
+- Políticas para la elaboración de syllabus.
+
+=== INDICADOR 5: Metodología y recursos de aprendizaje ===
+DIMENSIÓN: Currículo
+ESTÁNDAR: Las metodologías y recursos pedagógicos permiten desarrollar un proceso de enseñanza aprendizaje centrado en el estudiante.
+ELEMENTOS FUNDAMENTALES:
+1. Considera metodologías, técnicas y recursos didácticos centrados en el estudiante.
+2. Utiliza métodos pedagógicos diversos para evaluación formativa y sumativa, respetando necesidades educativas especiales.
+3. Considera experiencias para ampliar conocimientos interculturales e internacionales.
+4. Se realiza seguimiento y evaluación del proceso de enseñanza aprendizaje.
+FUENTES DE INFORMACIÓN:
+- Portafolio docente (horarios, registros de asistencia, calificaciones).
+- Evidencias de metodologías y técnicas pedagógicas aplicadas.
+
+=== INDICADOR 6: Escenarios de prácticas formativas ===
+DIMENSIÓN: Currículo
+ESTÁNDAR: Se planifica y desarrolla actividades prácticas en ambientes o escenarios específicos y coherentes con el currículo.
+ELEMENTOS FUNDAMENTALES:
+1. Desarrolla actividades prácticas en laboratorios, talleres o áreas de simulación coherentes con el currículo.
+2. Aplica instrumentos que guían el seguimiento y evaluación de prácticas.
+3. Los resultados de las prácticas muestran correspondencia con los syllabus.
+4. Se realiza seguimiento y evaluación de las prácticas para mejora continua.
+FUENTES DE INFORMACIÓN:
+- Planificación y ejecución de prácticas académicas.
+- Instrumentos que guían las prácticas en entornos de aprendizaje.
+
+=== INDICADOR 7: Tecnologías para el aprendizaje y conocimiento (TAC) ===
+DIMENSIÓN: Currículo
+ESTÁNDAR: Se promueve el desarrollo de competencias tecnológicas de la profesión mediante el uso de TAC coherentes con el área de conocimiento.
+ELEMENTOS FUNDAMENTALES:
+1. Se aplican entornos virtuales, simuladores o programas ofimáticos para desarrollar destrezas.
+2. Se capacita a los profesores en el uso de las TAC relacionadas con la modalidad de estudios.
+3. Aplica políticas que guían la utilización de TAC.
+4. Los resultados del uso de TAC muestran contribución al desarrollo de habilidades de la profesión.
+5. Se realiza seguimiento y evaluación de las TAC aplicadas.
+FUENTES DE INFORMACIÓN:
+- Evidencias de entornos virtuales o simuladores.
+- Registros de uso de TAC por parte de estudiantes.
+- Evidencias de capacitación a profesores en TAC.
+
+=== INDICADOR 8: Afinidad del personal académico ===
+DIMENSIÓN: Docencia (Personal Académico)
+ESTÁNDAR: Las asignaturas son impartidas por profesores con formación de posgrado, experiencia en investigación o ejercicio profesional afín al campo de la cátedra.
+REQUISITOS / LINEAMIENTOS:
+1. El personal académico debe tener formación de posgrado, experiencia investigativa o profesional afín al campo detallado de conocimiento de la cátedra.
+2. Se validan títulos de Maestrías, PhD, o especialidades médicas.
+3. Se considera experiencia en investigación (publicaciones) o vinculación (proyectos verificables).
+FUENTES DE INFORMACIÓN:
+- Distributivos y profesores reportados en el sistema SIIES.
+- Títulos registrados en la SENESCYT.
+- Evidencias de experiencia profesional, investigativa o de vinculación (certificados laborales, publicaciones).
+
+=== INDICADOR 9: Personal académico titular permanente ===
+DIMENSIÓN: Docencia (Personal Académico)
+ESTÁNDAR: La carrera cuenta con una tasa adecuada de personal titular permanente que permite el desarrollo de investigación, vinculación y gestión académica.
+REQUISITOS / LINEAMIENTOS:
+1. Se consideran profesores que obtuvieron titularidad mediante concurso público de merecimientos y oposición.
+2. Incluye profesores titulares categorizados como auxiliares, agregados y principales.
+3. Deben tener relación laboral indefinida evidenciada por nombramiento o contrato.
+FUENTES DE INFORMACIÓN:
+- Nombramientos definitivos, acción de personal o contratos indefinidos.
+- Reporte patronal de aportes al IESS.
+
+=== INDICADOR 10: Evaluación integral del desempeño del personal académico ===
+DIMENSIÓN: Docencia (Personal Académico)
+ESTÁNDAR: Se aplica un sistema de evaluación integral docente normado, cuyos resultados se usan para la toma de decisiones, estímulos o mejora del desempeño.
+ELEMENTOS FUNDAMENTALES:
+1. Se planifica, ejecuta y difunde la evaluación integral del desempeño docente.
+2. Se aplica al menos una vez en cada periodo académico con la participación de autoridades, pares y estudiantes.
+3. Se desarrollan actividades de retroalimentación de los resultados al personal académico evaluado.
+4. Los resultados se utilizan para planificar capacitación, perfeccionamiento o medidas de mejora/incentivo.
+5. Se realiza seguimiento y evaluación de estos procesos.
+FUENTES DE INFORMACIÓN:
+- Resultados obtenidos en la evaluación integral del desempeño docente.
+- Evidencias de retroalimentación al personal.
+- Planes de formación, capacitación o toma de decisiones basados en resultados.
