@@ -11,7 +11,14 @@ class RAGService:
     def __init__(self):
         # Inicializar embeddings una sola vez (es más eficiente)
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
-        self.persist_directory = settings.CHROMA_DIR
+        # 1. Obtiene la ruta de la carpeta 'services'
+        carpeta_services = os.path.dirname(os.path.abspath(__file__))
+        
+        # 2. Retrocede un nivel para llegar a la carpeta 'backend'
+        carpeta_backend = os.path.dirname(carpeta_services)
+        
+        # 3. Construye la ruta exacta hacia la base de datos
+        self.persist_directory = os.path.join(carpeta_backend, "chroma_data")
 
     def procesar_documento(self, temp_pdf_path: str) -> dict:
         """
