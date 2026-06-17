@@ -14,8 +14,10 @@ async def evaluar_documento(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="El archivo debe tener extensión .pdf")
 
     # Asegurar que el directorio exista
+    import uuid
     os.makedirs(settings.DOCS_DIR, exist_ok=True)
-    temp_pdf_path = os.path.join(settings.DOCS_DIR, f"temp_{file.filename}")
+    safe_filename = f"temp_{uuid.uuid4().hex}.pdf"
+    temp_pdf_path = os.path.join(settings.DOCS_DIR, safe_filename)
 
     try:
         # 2. Guardar el archivo PDF temporalmente
@@ -23,21 +25,22 @@ async def evaluar_documento(file: UploadFile = File(...)):
             shutil.copyfileobj(file.file, buffer)
 
         try:
-            # 3. Delegar TODA la lógica de negocio al servicio RAG
-            resultado = rag_service.procesar_documento(temp_pdf_path)
+            # 3. Enviar a la cola de Redis de forma asíncrona mediante Celery
+            from tareas_ia import auditar_documento_pesado
+            tarea = auditar_documento_pesado.delay(temp_pdf_path, file.filename)
             
-            # 4. Fase Final: Orquestador de Archivos Físicos (Triage)
-            from services.orchestrator_service import enrutar_documento
-            enrutar_documento(resultado, temp_pdf_path, file.filename)
-            
-            return resultado
+            return {
+                "mensaje": "Documento recibido y encolado para auditoría en segundo plano.",
+                "task_id": tarea.id,
+                "documento": file.filename
+            }
         except Exception as e:
             import traceback
             print("="*50)
-            print(f"🚨 ERROR FATAL AL PROCESAR: {str(e)}")
+            print(f"🚨 ERROR AL ENCOLAR TAREA: {str(e)}")
             traceback.print_exc()
             print("="*50)
-            raise HTTPException(status_code=500, detail=f"Error en procesamiento de IA u Orquestador: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Error al enviar la tarea a Celery: {str(e)}")
 
     except HTTPException as http_exc:
         raise http_exc
@@ -45,10 +48,21 @@ async def evaluar_documento(file: UploadFile = File(...)):
         print(f"🚨 ERROR GENERAL: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error interno del servidor: {str(e)}")
         
-    finally:
-        # 4. Limpieza: Eliminar siempre el archivo temporal
-        if os.path.exists(temp_pdf_path):
-            try:
-                os.remove(temp_pdf_path)
-            except Exception as cleanup_error:
-                print(f"Advertencia: No se pudo eliminar el archivo temporal: {cleanup_error}")
+    # NOTA: Se ha eliminado el bloque 'finally' que borraba el archivo temporal.
+    # Ahora la responsabilidad de borrar el PDF es del Worker de Celery una vez analizado.
+
+@router.get("/status/{task_id}")
+async def get_task_status(task_id: str):
+    from celery.result import AsyncResult
+    from tareas_ia import celery_app
+    
+    task_result = AsyncResult(task_id, app=celery_app)
+    
+    if task_result.state == 'PENDING':
+        return {"status": "EN COLA"}
+    elif task_result.state == 'SUCCESS':
+        return {"status": "COMPLETADO", "resultado": task_result.result}
+    elif task_result.state == 'FAILURE':
+        return {"status": "ERROR", "error": str(task_result.info)}
+    else:
+        return {"status": task_result.state}

@@ -9,9 +9,10 @@ from langchain_chroma import Chroma
 load_dotenv()
 
 def main():
-    # Rutas relativas al directorio actual (backend/)
-    file_path = "../data/caces_2024_oficial.txt"
-    persist_directory = "../chroma_data"
+    # Rutas absolutas calculadas desde la ubicación de este script
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    file_path = os.path.join(base_dir, "data", "caces_2024_oficial.txt")
+    persist_directory = os.path.join(base_dir, "chroma_data")
     
     print(f"Intentando cargar el documento: {file_path}...")
     

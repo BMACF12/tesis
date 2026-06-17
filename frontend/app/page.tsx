@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Veredicto = "CUMPLE" | "CUMPLE PARCIALMENTE" | "NO CUMPLE";
@@ -11,13 +11,64 @@ interface ResultadoAPI {
   indicador_evaluado: string;
 }
 
+interface EnqueuedTask {
+  task_id: string;
+  documento: string;
+  status: "EN COLA" | "COMPLETADO" | "ERROR" | "PROCESANDO";
+  resultado?: ResultadoAPI;
+  error?: string;
+}
+
 export default function EvaluadorCACES() {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ResultadoAPI | null>(null);
+  const [enqueuedTasks, setEnqueuedTasks] = useState<EnqueuedTask[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Polling para revisar el estado de las tareas
+  useEffect(() => {
+    const hasPendingTasks = enqueuedTasks.some(
+      (t) => t.status === "EN COLA" || t.status === "PROCESANDO"
+    );
+
+    if (!hasPendingTasks) return;
+
+    const interval = setInterval(async () => {
+      setEnqueuedTasks((currentTasks) => {
+        // Hacemos un fetch por cada tarea pendiente
+        const checkStatuses = async () => {
+          const updated = await Promise.all(
+            currentTasks.map(async (t) => {
+              if (t.status === "COMPLETADO" || t.status === "ERROR") return t;
+
+              try {
+                const res = await fetch(`http://127.0.0.1:8000/status/${t.task_id}`);
+                const data = await res.json();
+                
+                if (data.status === "COMPLETADO") {
+                  return { ...t, status: "COMPLETADO", resultado: data.resultado };
+                } else if (data.status === "ERROR") {
+                  return { ...t, status: "ERROR", error: data.error };
+                } else {
+                  return { ...t, status: data.status }; // Mantiene EN COLA u otro
+                }
+              } catch (e) {
+                return t; // Falla silenciosa de red temporal
+              }
+            })
+          );
+          setEnqueuedTasks(updated as EnqueuedTask[]);
+        };
+
+        checkStatuses();
+        return currentTasks; 
+      });
+    }, 3000); // Polling cada 3 segundos
+
+    return () => clearInterval(interval);
+  }, [enqueuedTasks]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -32,10 +83,10 @@ export default function EvaluadorCACES() {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.type === "application/pdf") {
-        setFile(droppedFile);
-        setResult(null);
+      const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type === "application/pdf");
+      if (droppedFiles.length > 0) {
+        setFiles(prev => [...prev, ...droppedFiles]);
+        setEnqueuedTasks([]);
         setError(null);
       } else {
         setError("Por favor, sube únicamente archivos PDF.");
@@ -45,42 +96,48 @@ export default function EvaluadorCACES() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setFile(e.target.files[0]);
-      setResult(null);
+      const selectedFiles = Array.from(e.target.files).filter(f => f.type === "application/pdf");
+      setFiles(prev => [...prev, ...selectedFiles]);
+      setEnqueuedTasks([]);
       setError(null);
     }
   };
 
-  const procesarDocumento = async () => {
-    if (!file) return;
+  const procesarDocumentos = async () => {
+    if (files.length === 0) return;
 
     setLoading(true);
     setError(null);
-    setResult(null);
-
-    const formData = new FormData();
-    formData.append("file", file);
+    setEnqueuedTasks([]);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/evaluar_documento/", {
-        method: "POST",
-        body: formData,
-      });
+      const tasks: EnqueuedTask[] = [];
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
 
-      if (!response.ok) {
-        throw new Error("Error en la respuesta del servidor.");
+        const response = await fetch("http://127.0.0.1:8000/evaluar_documento/", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error("Error al encolar: " + file.name);
+        }
+
+        const data = await response.json();
+        tasks.push({ task_id: data.task_id, documento: data.documento, status: "EN COLA" });
       }
-
-      const data = await response.json();
-      setResult(data);
+      setEnqueuedTasks(tasks);
+      setFiles([]); // Limpiar cola visual
     } catch (err) {
-      setError("Ocurrió un error al contactar con la IA. Asegúrate de que el backend esté corriendo.");
+      setError("Error de conexión. Asegúrate de que el backend FastAPI esté ejecutándose.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Función para obtener los colores semánticos basados en el veredicto
+  // Función para obtener los colores semánticos
   const getThemeVars = (veredicto: Veredicto) => {
     switch (veredicto) {
       case "CUMPLE":
@@ -119,36 +176,34 @@ export default function EvaluadorCACES() {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] flex items-center justify-center p-6 font-sans text-slate-200 overflow-x-hidden">
+    <div className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] flex flex-col items-center justify-start p-6 font-sans text-slate-200 overflow-x-hidden">
       
-      {/* Contenedor Flex Dinámico para las columnas */}
+      <div className="text-center mt-10 mb-8">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 mb-4 tracking-tight">
+          Auditor IA Asíncrono
+        </h1>
+        <p className="text-slate-400 font-medium text-lg">
+          Sistema de Encolamiento Masivo para Evaluación Normativa
+        </p>
+      </div>
+
       <motion.div 
         layout
-        className={`flex flex-col xl:flex-row gap-8 w-full items-stretch justify-center transition-all duration-700 ease-in-out ${result && !loading ? 'max-w-7xl' : 'max-w-3xl'}`}
+        className={`flex flex-col xl:flex-row gap-8 w-full items-start justify-center transition-all duration-700 ease-in-out ${enqueuedTasks.length > 0 && !loading ? 'max-w-7xl' : 'max-w-3xl'}`}
       >
         
-        {/* Columna Izquierda: Zona de Subida y Acción */}
+        {/* COLUMNA IZQUIERDA: ZONA DE SUBIDA */}
         <motion.div 
           layout
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="w-full flex-1 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden flex flex-col justify-center"
+          className="w-full xl:w-1/3 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 shadow-2xl relative overflow-hidden flex flex-col"
         >
-          <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 mb-4 tracking-tight">
-              Auditor Inteligente
-            </h1>
-            <p className="text-slate-400 font-medium text-lg">
-              Sistema de Evaluación Normativa CACES
-            </p>
-          </div>
-
-          {/* Zona de Drop & Upload */}
           <div 
-            className={`relative border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group
+            className={`relative border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 group
               ${isDragging ? "border-indigo-500 bg-indigo-500/10 scale-[1.02]" : "border-slate-700 hover:border-indigo-400 hover:bg-slate-800/50"}
-              ${file && !loading && !result ? "border-emerald-500/50 bg-emerald-500/5" : ""}
+              ${files.length > 0 && !loading && enqueuedTasks.length === 0 ? "border-emerald-500/50 bg-emerald-500/5" : ""}
             `}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -158,21 +213,27 @@ export default function EvaluadorCACES() {
             <input 
               type="file" 
               accept="application/pdf" 
+              multiple
               className="hidden" 
               ref={fileInputRef} 
               onChange={handleFileChange} 
             />
             
-            <svg className={`w-14 h-14 mb-4 transition-colors duration-300 ${file ? 'text-emerald-400' : 'text-slate-500 group-hover:text-indigo-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <svg className={`w-12 h-12 mb-4 transition-colors duration-300 ${files.length > 0 ? 'text-emerald-400' : 'text-slate-500 group-hover:text-indigo-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
             
-            {file ? (
-              <p className="text-lg font-medium text-emerald-300 truncate max-w-full px-4">{file.name}</p>
+            {files.length > 0 ? (
+              <div className="text-center w-full">
+                <p className="text-md font-medium text-emerald-300 mb-2">{files.length} archivo(s) listo(s)</p>
+                <div className="max-h-24 overflow-y-auto text-xs text-slate-400 space-y-1 scrollbar-thin scrollbar-thumb-slate-700">
+                  {files.map((f, i) => <p key={i} className="truncate">{f.name}</p>)}
+                </div>
+              </div>
             ) : (
               <div className="text-center">
-                <p className="text-slate-300 text-lg mb-1">Arrastra tu evidencia PDF aquí</p>
-                <p className="text-indigo-400 font-semibold text-sm">o haz clic para explorar tus archivos</p>
+                <p className="text-slate-300 text-sm mb-1">Arrastra PDFs aquí</p>
+                <p className="text-indigo-400 font-semibold text-xs">Explorar lote</p>
               </div>
             )}
           </div>
@@ -183,123 +244,124 @@ export default function EvaluadorCACES() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 text-sm text-center"
+                className="mt-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs text-center"
               >
                 {error}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Botón de Acción */}
-          <div className="mt-8 flex justify-center">
+          <div className="mt-6 flex justify-center">
             <button 
-              onClick={procesarDocumento}
-              disabled={!file || loading}
-              className={`relative overflow-hidden px-10 py-4 rounded-2xl font-bold text-lg tracking-wide transition-all duration-300
-                ${!file || loading 
+              onClick={procesarDocumentos}
+              disabled={files.length === 0 || loading}
+              className={`w-full relative overflow-hidden py-3 rounded-xl font-bold text-sm tracking-wide transition-all duration-300
+                ${files.length === 0 || loading 
                   ? "bg-slate-800 text-slate-500 cursor-not-allowed" 
                   : "bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]"
                 }
               `}
             >
-              {loading ? (
-                <span className="flex items-center gap-3">
-                  <svg className="animate-spin h-5 w-5 text-white/80" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-80" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Evaluando con IA...
-                </span>
-              ) : "Generar Dictamen Oficial"}
+              {loading ? "Encolando..." : "Enviar a Celery"}
             </button>
           </div>
         </motion.div>
 
-        {/* Columna Derecha: Tarjeta de Resultados */}
+        {/* COLUMNA DERECHA: RESULTADOS Y COLA */}
         <AnimatePresence mode="wait">
-          {result && !loading && (
+          {enqueuedTasks.length > 0 && !loading && (
             <motion.div 
               layout
               initial={{ opacity: 0, x: 50, scale: 0.95 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 50, scale: 0.95 }}
               transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
-              className={`w-full flex-1 p-8 md:p-12 rounded-[2rem] bg-slate-900/80 backdrop-blur-xl border ${getThemeVars(result.veredicto).border} shadow-2xl ${getThemeVars(result.veredicto).shadow} overflow-hidden relative flex flex-col justify-center`}
+              className="w-full xl:w-2/3 flex flex-col gap-4"
             >
-              {/* Background Glow */}
-              <div className={`absolute top-0 left-0 w-full h-full ${getThemeVars(result.veredicto).bgInfo} opacity-30 pointer-events-none`} />
+              {enqueuedTasks.map((task, idx) => {
+                const completado = task.status === "COMPLETADO";
+                const errorApi = task.status === "ERROR";
+                const pendiente = task.status === "EN COLA" || task.status === "PROCESANDO";
+                const theme = completado && task.resultado ? getThemeVars(task.resultado.veredicto) : null;
 
-              <div className="relative z-10 flex flex-col gap-10">
-                
-                {/* Header de la Tarjeta */}
-                <div className="flex flex-row items-center justify-between gap-4">
-                  <div className="flex-1 text-left">
-                    <h3 className="text-slate-400 uppercase tracking-widest text-xs font-bold mb-2">Dictamen del Auditor</h3>
-                    <motion.div 
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className={`text-3xl md:text-4xl font-black ${getThemeVars(result.veredicto).textInfo} leading-tight mb-3`}
-                    >
-                      {result.veredicto}
-                    </motion.div>
-                    
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.4 }}
-                      className="inline-flex items-center px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700/50 shadow-sm"
-                    >
-                      <svg className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
-                      <span className="text-xs font-medium text-slate-300 tracking-wide line-clamp-1" title={result.indicador_evaluado}>
-                        {result.indicador_evaluado}
-                      </span>
-                    </motion.div>
-                  </div>
-                  
-                  {/* Círculo / Badge de Porcentaje */}
+                return (
                   <motion.div 
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ delay: 0.3, type: "spring", bounce: 0.5 }}
-                    className={`shrink-0 w-24 h-24 rounded-full border-[5px] flex items-center justify-center ${getThemeVars(result.veredicto).border} ${getThemeVars(result.veredicto).bgInfo} shadow-inner`}
+                    layout
+                    key={task.task_id}
+                    className={`w-full p-6 rounded-[1.5rem] bg-slate-900/80 backdrop-blur-xl border shadow-xl relative overflow-hidden transition-all duration-500
+                      ${completado && theme ? theme.border : pendiente ? "border-indigo-500/50" : "border-rose-500/50"}
+                    `}
                   >
-                    <div className="text-center">
-                      <span className={`text-3xl font-black ${getThemeVars(result.veredicto).textInfo}`}>{result.porcentaje_estimado}</span>
-                      <span className={`text-xs block font-bold ${getThemeVars(result.veredicto).textInfo} opacity-80 -mt-1`}>%</span>
+                    {/* Background glow para tareas completadas */}
+                    {completado && theme && (
+                      <div className={`absolute top-0 left-0 w-full h-full ${theme.bgInfo} opacity-20 pointer-events-none`} />
+                    )}
+
+                    <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
+                      
+                      {/* Estado y Título */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          {pendiente && (
+                            <span className="flex items-center gap-2 text-xs font-bold px-2.5 py-1 bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30">
+                              <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                              EN COLA
+                            </span>
+                          )}
+                          {completado && task.resultado && (
+                            <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${theme?.textInfo} bg-slate-900 shadow-sm border-current`}>
+                              {task.resultado.veredicto}
+                            </span>
+                          )}
+                          {errorApi && (
+                            <span className="text-xs font-bold px-2.5 py-1 bg-rose-500/20 text-rose-400 rounded-full border border-rose-500/30">
+                              ERROR
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-200 truncate" title={task.documento}>{task.documento}</h3>
+                        
+                        {completado && task.resultado && (
+                          <div className="mt-2 text-sm text-slate-400 line-clamp-2">
+                            <span className="font-semibold text-slate-300">Indicador asignado:</span> {task.resultado.indicador_evaluado}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Porcentaje Visual (solo si está completado) */}
+                      {completado && task.resultado && theme && (
+                        <div className="shrink-0 flex items-center gap-4">
+                          <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center ${theme.border} ${theme.bgInfo}`}>
+                            <span className={`text-xl font-black ${theme.textInfo}`}>{task.resultado.porcentaje_estimado}%</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Reporte Expandible */}
+                    {completado && task.resultado && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                        className="mt-6 pt-4 border-t border-slate-700/50"
+                      >
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Justificación del Auditor</h4>
+                        <p className="text-sm text-slate-300 bg-slate-950/50 p-4 rounded-xl border border-slate-800">
+                          {task.resultado.justificacion}
+                        </p>
+                      </motion.div>
+                    )}
+
+                    {errorApi && (
+                      <div className="mt-4 p-3 bg-rose-950/50 rounded-lg border border-rose-800 text-sm text-rose-300">
+                        {task.error || "Ocurrió un error inesperado al procesar el archivo en Celery."}
+                      </div>
+                    )}
+
                   </motion.div>
-                </div>
-
-                {/* Barra de Progreso Animada */}
-                <div className="w-full bg-slate-800/80 rounded-full h-4 overflow-hidden shadow-inner border border-slate-700/50">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${result.porcentaje_estimado}%` }}
-                    transition={{ duration: 1.2, delay: 0.5, ease: "easeOut" }}
-                    className={`h-full rounded-full ${getThemeVars(result.veredicto).bar}`}
-                  />
-                </div>
-
-                {/* Justificación */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.8 }}
-                  className="bg-slate-950/60 p-6 rounded-2xl border border-slate-800 shadow-lg flex flex-col"
-                >
-                  <h4 className="text-slate-300 font-semibold mb-3 flex items-center gap-2 text-base">
-                    <svg className={`w-5 h-5 ${getThemeVars(result.veredicto).textInfo}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                    Análisis Detallado
-                  </h4>
-                  <div className="max-h-48 overflow-y-auto pr-2">
-                    <p className="text-slate-400 leading-relaxed text-sm md:text-base font-light">
-                      {result.justificacion}
-                    </p>
-                  </div>
-                </motion.div>
-
-              </div>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>

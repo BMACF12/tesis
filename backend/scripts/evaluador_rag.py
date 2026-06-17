@@ -10,9 +10,10 @@ from langchain_core.prompts import PromptTemplate
 load_dotenv()
 
 def main():
-    # Rutas locales
-    pdf_path = os.path.join(os.path.dirname(__file__), 'documentos_prueba', 'ejemplo_malo.pdf')
-    persist_directory = "chroma_data"
+    # Rutas absolutas calculadas desde la ubicación de este script
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pdf_path = os.path.join(base_dir, "documentos_prueba", "ejemplo_malo.pdf")
+    persist_directory = os.path.join(base_dir, "chroma_data")
     
     print("=" * 60)
     print("🚀 INICIANDO PIPELINE RAG DE AUDITORÍA CACES")

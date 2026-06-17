@@ -1,0 +1,9 @@
+=== DICTAMEN OFICIAL DE AUDITORÍA CACES ===
+Fecha: 2026-06-17 13:23:20
+Documento Analizado: malla_ingenierIa_de_software.pdf
+Regla/Indicador: INDICADOR 7: Tecnologías para el aprendizaje y conocimiento (TAC)
+Veredicto IA: CUMPLE PARCIALMENTE
+Porcentaje Estimado: 60%
+--------------------------------------------------
+JUSTIFICACIÓN TÉCNICA:
+El documento proporcionado muestra evidencia de la aplicación de tecnologías para el aprendizaje y conocimiento en la carrera de Ingeniería de Software de la Universidad de las Fuerzas Armadas - ESPE. Se mencionan cursos como 'Computación Digital', 'Programación Web', 'Sistemas de Bases de Datos', entre otros, que sugieren el uso de TAC para desarrollar destrezas y habilidades en los estudiantes. Además, se menciona la existencia de un modelo educativo que incluye un componente práctico experimental, lo que implica el uso de TAC para el aprendizaje. Sin embargo, no se proporciona información explícita sobre la capacitación de los profesores en el uso de TAC, ni sobre la evaluación y seguimiento del uso de TAC en el currículo. Por lo tanto, se considera que el indicador cumple parcialmente con los elementos fundamentales establecidos.

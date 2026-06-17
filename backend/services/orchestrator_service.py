@@ -34,7 +34,10 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
     nuevo_nombre_txt = f"{nombre_base}_{timestamp}_Dictamen.txt"
     
     # 2. Lógica de Triage (Enrutamiento)
-    if "NO CUMPLE" in veredicto:
+    if "ERROR" in veredicto:
+        carpeta_destino = os.path.join(BASE_DIR, "99_Descarte_Errores")
+        crear_txt = False # No generar reporte detallado para errores
+    elif "NO CUMPLE" in veredicto:
         carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
         crear_txt = True
     elif "CUMPLE PARCIALMENTE" in veredicto:

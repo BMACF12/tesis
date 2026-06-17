@@ -1,0 +1,9 @@
+=== DICTAMEN OFICIAL DE AUDITORÍA CACES ===
+Fecha: 2026-06-17 13:36:52
+Documento Analizado: 2026 LNM ELABORACION Y APLICACION EX FIN CARRERA v4.pdf
+Regla/Indicador: INDICADOR 1: Perfil de egreso
+Veredicto IA: NO CUMPLE
+Porcentaje Estimado: 20%
+--------------------------------------------------
+JUSTIFICACIÓN TÉCNICA:
+El documento proporcionado se enfoca en los lineamientos para la elaboración y aplicación del examen de fin de carrera, pero no define claramente el perfil de egreso de la carrera en concordancia con el Modelo educativo. Aunque se menciona la importancia de la evaluación de los resultados de aprendizaje, no se establecen de manera específica los resultados de aprendizaje que el estudiante alcanzará al término de su proceso formativo. Además, no se presenta evidencia de la participación de expertos externos, organizaciones profesionales, empleadores y graduados en la elaboración del perfil de egreso. Por lo tanto, el documento no cumple con los elementos fundamentales del indicador.
