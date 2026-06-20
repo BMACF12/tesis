@@ -15,7 +15,7 @@ class Settings:
     
     # Rutas base relativas a backend/
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    DOCS_DIR = os.path.join(BASE_DIR, "documentos_prueba")
+    DOCS_DIR = os.path.join(BASE_DIR, "temp")
     CHROMA_DIR = os.path.join(BASE_DIR, "chroma_data")
 
 settings = Settings()

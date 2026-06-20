@@ -77,7 +77,8 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
         if not query_text:
             query_text = texto_completo[:1000]
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # Subir un nivel desde services/ a backend/
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         persist_directory = os.path.join(base_dir, "chroma_data")
         
         embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")

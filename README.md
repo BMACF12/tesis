@@ -1,98 +1,106 @@
-# Sistema de Evaluación Normativa CACES (RAG + FastAPI)
+# Auditor IA - Sistema de Evaluación Normativa CACES (N-Capas)
 
-Este proyecto implementa un sistema automatizado de evaluación de documentos académicos (como Sílabos, Mallas Curriculares, etc.) basado en la normativa del CACES (Ecuador). Utiliza una arquitectura de Generación Aumentada por Recuperación (RAG) integrando FastAPI para el backend, bases de datos vectoriales (ChromaDB) y modelos de lenguaje de gran tamaño (LLMs) para dictámenes automatizados.
+Este proyecto implementa un sistema automatizado de evaluación de evidencias documentales (Sílabos, Mallas Curriculares, etc.) basado en la normativa oficial del CACES (Ecuador) 2024. 
 
-## Requisitos Previos
+El sistema ha sido escalado a una **Arquitectura de N-Capas** robusta para manejar procesamiento concurrente y masivo de PDFs sin colapsar, integrando:
+- **Frontend:** Interfaz de usuario interactiva y moderna construida con Next.js (React) y TailwindCSS.
+- **Backend (API):** Servidor web de alto rendimiento con FastAPI.
+- **Cola de Tareas (Broker):** Redis.
+- **Worker Asíncrono:** Celery para procesar la Inteligencia Artificial en segundo plano.
+- **IA y RAG:** LangChain, ChromaDB (Base de datos vectorial), Groq (LLM ultrarrápido) y Google Gemini (Embeddings).
 
-Antes de comenzar, asegúrate de tener instalado lo siguiente:
+---
 
-1. **Python 3.10 o superior**: Puedes descargarlo desde [python.org](https://www.python.org/downloads/). 
-   > **⚠️ CRÍTICO:** Durante el instalador de Python, **DEBES marcar la casilla que dice "Add Python to PATH"** en la primera pantalla. Si no lo haces, los comandos no funcionarán en tu terminal y no podrás levantar el entorno.
-2. **Git**: Para clonar el repositorio. Descárgalo e instálalo desde [git-scm.com](https://git-scm.com/).
+## 🛠️ Requisitos Previos del Sistema
 
-## Dependencias del Sistema para Windows (Muy Importante)
+Antes de comenzar, asegúrate de tener instalado lo siguiente en tu máquina:
 
-Nuestro sistema utiliza la estrategia `hi_res` (alta resolución) de la librería `unstructured` para leer tablas, formatos y estructuras complejas dentro de los PDFs. Para que esto funcione correctamente en Windows, **es estrictamente obligatorio** instalar herramientas de procesamiento visual y OCR a nivel de sistema operativo.
+1. **Python 3.10 o superior**: Asegúrate de marcar **"Add Python to PATH"** durante la instalación.
+2. **Node.js (LTS)**: Necesario para levantar el entorno del Frontend (Next.js). Descárgalo desde [nodejs.org](https://nodejs.org/).
+3. **Docker Desktop**: Requerido para levantar fácilmente la base de datos Redis. Descárgalo desde [docker.com](https://www.docker.com/).
+4. **Git**: Para clonar el repositorio.
 
-### 1. Poppler (Para procesamiento de PDF)
-1. Descarga los binarios compilados de Poppler para Windows (busca "Poppler for Windows" y descarga el archivo `.zip` más reciente).
-2. Extrae el contenido del archivo `.zip`.
-3. Mueve la carpeta extraída a la raíz de tu disco C:, de modo que te quede exactamente así: `C:\poppler`.
-4. **Agregar al PATH:** 
-   - Presiona la tecla Windows, escribe "Variables de entorno" y selecciona **Editar las variables de entorno del sistema**.
-   - Haz clic en el botón **Variables de entorno...**.
-   - En la sección "Variables del sistema", busca la variable llamada **Path** y haz doble clic sobre ella.
-   - Haz clic en **Nuevo** y agrega la ruta exacta hacia la subcarpeta `bin` de poppler: `C:\poppler\bin`.
-   - Haz clic en Aceptar en todas las ventanas.
+### Dependencias Nativas para Windows (Muy Importante)
+El sistema extrae texto e imágenes complejas de los PDF. **Es estrictamente obligatorio** tener instalados a nivel de sistema operativo:
+1. **Poppler** (Para el procesamiento base del PDF). Descárgalo, colócalo en `C:\poppler` y añade `C:\poppler\bin` a tus variables de entorno (PATH).
+2. **Tesseract OCR** (Para leer texto incrustado en imágenes). Instálalo y añade `C:\Program Files\Tesseract-OCR` a tus variables de entorno (PATH).
 
-### 2. Tesseract OCR (Para reconocimiento óptico de caracteres)
-1. Descarga el instalador de Tesseract OCR para Windows (busca "Tesseract at UB Mannheim").
-2. Ejecuta el instalador y deja la ruta de instalación por defecto: `C:\Program Files\Tesseract-OCR`.
-3. **Agregar al PATH:**
-   - Vuelve a abrir las **Variables de entorno** siguiendo los mismos pasos detallados arriba.
-   - Edita la variable **Path**.
-   - Haz clic en **Nuevo** y agrega la ruta exacta de instalación: `C:\Program Files\Tesseract-OCR`.
-   - Haz clic en Aceptar para guardar todos los cambios.
+> **⚠️ Advertencia:** Después de modificar el PATH en Windows, es obligatorio reiniciar tus terminales y el editor de código.
 
-> **⚠️ Advertencia:** Después de modificar el PATH, **es obligatorio cerrar y volver a abrir cualquier terminal o editor de código** (como VS Code) para que el sistema reconozca los nuevos comandos.
+---
 
-## Clonación y Entorno Virtual
+## 🚀 Guía de Instalación y Despliegue (Paso a Paso)
 
-Abre una nueva terminal (PowerShell o CMD) y ejecuta los siguientes comandos para preparar el proyecto:
+Sigue estos pasos en orden para encender todas las capas del sistema.
 
+### PASO 1: Levantar Redis (El Broker de Mensajes)
+Abre una terminal y ejecuta Docker para descargar e iniciar Redis en el puerto por defecto (6379):
 ```bash
-# 1. Clonar el repositorio (ajusta la URL a tu repositorio real)
-git clone https://github.com/BMACF12/tesis.git
-cd tesis
-
-# 2. Crear un entorno virtual aislado para no afectar tu sistema
-python -m venv venv
-
-# 3. Activar el entorno virtual (Comando para Windows)
-.\venv\Scripts\activate
+docker run -d -p 6379:6379 --name redis-caces redis
 ```
 
-*(Nota: Si usas PowerShell y te da un error de ejecución de scripts, abre PowerShell como Administrador y corre `Set-ExecutionPolicy Unrestricted`, luego intenta activar el entorno de nuevo).*
-
-## Instalación de Librerías
-
-Con el entorno virtual activado (notarás que aparece un `(venv)` al inicio de la línea en tu consola), instálalo todo ejecutando:
-
+### PASO 2: Configurar el Backend (FastAPI + Celery)
+Abre una nueva terminal y navega a la carpeta del backend:
 ```bash
+# 1. Entrar al backend
 cd backend
+
+# 2. Crear y activar entorno virtual
+python -m venv venv
+.\venv\Scripts\activate   # (En Mac/Linux usa: source venv/bin/activate)
+
+# 3. Instalar absolutamente todas las librerías
 pip install -r requirements.txt
 ```
 
-## Variables de Entorno
-
-El motor RAG depende de APIs externas. En la raíz de tu carpeta `backend`, crea un archivo llamado `.env` y añade tus credenciales secretas siguiendo este formato exacto:
-
+Crea un archivo `.env` en la carpeta `backend` con tus claves de acceso:
 ```env
 GROQ_API_KEY=tu_api_key_de_groq_aqui
 GOOGLE_API_KEY=tu_api_key_de_gemini_aqui
 ```
 
-## Inicialización de la Base de Datos Vectorial
-
-Antes de levantar el servidor por primera vez, necesitas crear la base de conocimiento que usará la IA (nuestra "Base de Oro"). Este paso descarga/activa los modelos de embeddings y le dice a ChromaDB que procese la normativa y la guarde en disco.
-
-Asegúrate de estar en la carpeta `backend` (con el venv activado) y ejecuta:
-
+### PASO 3: Construir la "Base de Oro" (RAG)
+Por única vez (o cuando se actualice la normativa), debes crear la base de conocimiento vectorial de ChromaDB:
 ```bash
+# Estando dentro de la carpeta 'backend' y con el venv activado:
 python scripts/crear_base_oro.py
 ```
-*(Si tu archivo está en la raíz del backend, ejecuta simplemente `python crear_base_oro.py`).*
 
-Verás mensajes en consola confirmando que la base de datos se ha creado exitosamente en la carpeta `chroma_data`.
-
-## Ejecución del Servidor
-
-Una vez que todo está configurado y la base de datos existe, levanta el API de FastAPI:
-
+### PASO 4: Encender la API (Servidor Web)
+Deja esta terminal abierta ejecutando el backend de FastAPI:
 ```bash
-# Estando dentro de la carpeta 'backend'
+# Estando dentro de la carpeta 'backend' y con el venv activado:
 uvicorn main:app --reload
 ```
+La API Gateway quedará escuchando en `http://127.0.0.1:8000`.
 
-¡Felicidades! Tu servidor backend estará corriendo en `http://127.0.0.1:8000`. 
-Puedes visitar **`http://127.0.0.1:8000/docs`** en tu navegador para ver la documentación interactiva Swagger y probar el endpoint `/evaluar_documento/`.
+### PASO 5: Encender el Worker de Celery (Cerebro de la IA)
+Abre una **NUEVA terminal**, navega a la carpeta `backend`, activa el entorno virtual y ejecuta el "obrero" que procesará los PDFs pesados en segundo plano:
+```bash
+cd backend
+.\venv\Scripts\activate
+
+# Comando para encender Celery en Windows:
+celery -A services.tareas_ia worker --loglevel=info --pool=solo
+```
+
+### PASO 6: Encender el Frontend (Next.js)
+Abre una **NUEVA terminal**, navega a la carpeta `frontend` y lanza la interfaz de usuario:
+```bash
+cd frontend
+
+# 1. Instalar dependencias de Node
+npm install
+
+# 2. Levantar servidor de desarrollo
+npm run dev
+```
+
+---
+
+## 🎯 ¿Cómo usar el sistema?
+
+1. Ve a **`http://localhost:3000`** en tu navegador.
+2. Arrastra y suelta un lote completo de PDFs (ej. 5 sílabos al mismo tiempo) en la caja principal.
+3. Haz clic en "Analizar y Clasificar".
+4. Disfruta de la magia. Verás cómo los archivos pasan al estado "EN COLA". Celery los irá tomando uno a uno desde Redis y los procesará sin colapsar tu navegador. Las tarjetas gráficas se abrirán como un acordeón a medida que lleguen los resultados de los dictámenes generados por Llama-3.

@@ -1,11 +1,9 @@
 import os
 import shutil
 from fastapi import APIRouter, UploadFile, File, HTTPException
-from services.rag_service import RAGService
 from core.config import settings
 
 router = APIRouter()
-rag_service = RAGService()
 
 @router.post("/evaluar_documento/")
 async def evaluar_documento(file: UploadFile = File(...)):
@@ -26,7 +24,7 @@ async def evaluar_documento(file: UploadFile = File(...)):
 
         try:
             # 3. Enviar a la cola de Redis de forma asíncrona mediante Celery
-            from tareas_ia import auditar_documento_pesado
+            from services.tareas_ia import auditar_documento_pesado
             tarea = auditar_documento_pesado.delay(temp_pdf_path, file.filename)
             
             return {
@@ -54,7 +52,7 @@ async def evaluar_documento(file: UploadFile = File(...)):
 @router.get("/status/{task_id}")
 async def get_task_status(task_id: str):
     from celery.result import AsyncResult
-    from tareas_ia import celery_app
+    from services.tareas_ia import celery_app
     
     task_result = AsyncResult(task_id, app=celery_app)
     
