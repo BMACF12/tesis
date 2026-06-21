@@ -10,6 +10,8 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_chroma import Chroma
 from langchain_groq import ChatGroq
 from langchain_core.prompts import PromptTemplate
+from pydantic import BaseModel, Field
+from typing import List
 
 # Capa de Orquestación Física (Triage)
 from services.orchestrator_service import enrutar_documento
@@ -24,6 +26,21 @@ celery_app = Celery(
     broker=URL_REDIS,
     backend=URL_REDIS
 )
+
+# Esquemas de salida estructurada
+class ElementoChecklist(BaseModel):
+    numero_elemento: int = Field(description="El número del elemento fundamental evaluado")
+    descripcion: str = Field(description="El texto literal del elemento o requisito según el contexto de la norma")
+    cumple: bool = Field(description="True si el documento cumple con el elemento, False si no")
+    justificacion: str = Field(description="Evidencia o motivo exacto extraído del documento evaluado")
+
+class DictamenAuditoria(BaseModel):
+    indicador_evaluado: str = Field(description="Nombre del indicador evaluado")
+    veredicto: str = Field(description="'CUMPLE' o 'CUMPLE PARCIALMENTE' o 'NO CUMPLE'")
+    porcentaje_estimado: int = Field(description="Porcentaje de 0 a 100")
+    justificacion: str = Field(description="Explicación detallada de la decisión tomada")
+    analisis_libre: str = Field(description="Párrafo de análisis cualitativo y general sobre el documento")
+    checklist: List[ElementoChecklist] = Field(description="Lista detallada de todos los elementos evaluados")
 
 # Configuración de resiliencia: 3 reintentos si las APIs fallan
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
@@ -98,9 +115,9 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
         llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             temperature=0
-        )
+        ).with_structured_output(DictamenAuditoria)
         
-        template_auditor = """Eres un Auditor Académico Senior del CACES (Ecuador), experto y con criterio analítico. Tu tarea es evaluar el documento proporcionado por el usuario basándote ÚNICA Y EXCLUSIVAMENTE en la normativa oficial 2024 del CACES entregada en el contexto.
+        template_auditor = """Eres un auditor académico riguroso del CACES (Ecuador). Lee el documento proporcionado y el contexto recuperado de la normativa. Identifica el indicador correspondiente y evalúa el documento contra CADA UNO de los 'Elementos Fundamentales' o 'Requisitos' enumerados en el contexto. Debes generar un ítem en el checklist por cada elemento, dictaminando si cumple o no, acompañado de su justificación fáctica.
 
 REGLAS DE EVALUACIÓN (CRITERIO EXPERTO):
 1. Equivalencia Semántica: El documento NO necesita usar las palabras exactas de la normativa. Evalúa si el 'propósito' o la 'esencia' del elemento fundamental está presente.
@@ -110,17 +127,9 @@ REGLAS DE EVALUACIÓN (CRITERIO EXPERTO):
    - "CUMPLE PARCIALMENTE": Faltan elementos secundarios o hay ambigüedad, pero el núcleo del documento es válido. Requiere correcciones.
    - "NO CUMPLE": Faltan elementos críticos e indispensables.
 
-Responde SIEMPRE en formato JSON válido con esta estructura exacta, sin texto adicional:
-{{
-"indicador_evaluado": "Nombre del indicador",
-"veredicto": "CUMPLE" o "CUMPLE PARCIALMENTE" o "NO CUMPLE",
-"porcentaje_estimado": "Porcentaje de 0 a 100",
-"justificacion": "Explicación detallada..."
-}}
+INDICADOR Y CONTEXTO NORMATIVO: {indicador} 
 
-INDICADOR: {indicador} 
-
-DOCUMENTO: {documento}"""
+DOCUMENTO A EVALUAR: {documento}"""
 
         prompt = PromptTemplate(
             input_variables=["indicador", "documento"],
@@ -128,25 +137,14 @@ DOCUMENTO: {documento}"""
         )
         
         chain = prompt | llm
-        respuesta = chain.invoke({
+        respuesta: DictamenAuditoria = chain.invoke({
             "indicador": indicador_recuperado,
             "documento": texto_completo
         })
         
-        # 4. Procesar respuesta JSON y enrutar
-        print("-> [CELERY] Procesando dictamen y ejecutando triage de archivos...")
-        contenido_llm = respuesta.content.strip()
-        
-        # Limpieza de backticks markdown
-        if contenido_llm.startswith("```json"):
-            contenido_llm = contenido_llm.replace("```json", "", 1)
-        elif contenido_llm.startswith("```"):
-            contenido_llm = contenido_llm.replace("```", "", 1)
-        if contenido_llm.endswith("```"):
-            contenido_llm = contenido_llm[:-3]
-        contenido_llm = contenido_llm.strip()
-            
-        resultado_json = json.loads(contenido_llm)
+        # 4. Procesar respuesta y enrutar
+        print("-> [CELERY] Procesando dictamen estructurado y ejecutando triage de archivos...")
+        resultado_json = respuesta.model_dump()
         
         # 5. Ejecutar orquestador físico
         enrutar_documento(resultado_json, ruta_pdf, nombre_original)

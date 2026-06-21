@@ -4,11 +4,20 @@ import { motion, AnimatePresence } from "framer-motion";
 
 type Veredicto = "CUMPLE" | "CUMPLE PARCIALMENTE" | "NO CUMPLE";
 
+interface ElementoChecklist {
+  numero_elemento: number;
+  descripcion: string;
+  cumple: boolean;
+  justificacion: string;
+}
+
 interface ResultadoAPI {
   veredicto: Veredicto;
   porcentaje_estimado: string | number;
   justificacion: string;
+  analisis_libre?: string;
   indicador_evaluado: string;
+  checklist?: ElementoChecklist[];
 }
 
 interface EnqueuedTask {
@@ -145,10 +154,50 @@ const TaskCard = ({ task }: { task: EnqueuedTask }) => {
             className="overflow-hidden"
           >
             <div className="mt-6 pt-5 border-t border-slate-700/50">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Justificación del Auditor</h4>
-              <p className="text-sm text-slate-300 bg-slate-950/50 p-5 rounded-2xl border border-slate-800/80 leading-relaxed shadow-inner">
-                {task.resultado.justificacion}
-              </p>
+              <div className="space-y-5">
+                {task.resultado.analisis_libre && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Análisis General</h4>
+                    <p className="text-sm text-slate-300 bg-slate-950/50 p-5 rounded-2xl border border-slate-800/80 leading-relaxed shadow-inner">
+                      {task.resultado.analisis_libre}
+                    </p>
+                  </div>
+                )}
+
+                {task.resultado.checklist && task.resultado.checklist.length > 0 ? (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Checklist de Evaluación</h4>
+                    <div className="space-y-3">
+                      {task.resultado.checklist.map((item, idx) => (
+                        <div key={idx} className="bg-slate-950/50 border border-slate-800/80 p-4 rounded-xl shadow-inner flex flex-col gap-2 transition-colors hover:border-indigo-500/30">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 shrink-0">
+                              {item.cumple ? (
+                                <svg className="w-5 h-5 text-emerald-500 drop-shadow-[0_0_5px_rgba(16,185,129,0.3)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                              ) : (
+                                <svg className="w-5 h-5 text-rose-500 drop-shadow-[0_0_5px_rgba(244,63,94,0.3)]" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" /></svg>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-semibold text-slate-200 leading-snug">{item.numero_elemento}. {item.descripcion}</p>
+                              <div className="mt-2 bg-slate-900/50 rounded-lg p-3 border border-slate-700/50">
+                                <p className="text-xs text-slate-400 leading-relaxed"><span className="font-semibold text-indigo-300">Evidencia del modelo:</span> {item.justificacion}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Justificación del Auditor</h4>
+                    <p className="text-sm text-slate-300 bg-slate-950/50 p-5 rounded-2xl border border-slate-800/80 leading-relaxed shadow-inner">
+                      {task.resultado.justificacion}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
