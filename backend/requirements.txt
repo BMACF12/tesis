@@ -24,3 +24,4 @@ pi-heif
 pytesseract
 celery
 redis
+fpdf2

@@ -305,24 +305,25 @@ export default function EvaluadorCACES() {
     setEnqueuedTasks([]);
 
     try {
-      const tasks: EnqueuedTask[] = [];
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append("file", file);
+      const formData = new FormData();
+      // Enviar todos los archivos bajo la misma llave 'files'
+      files.forEach(file => {
+        formData.append("files", file);
+      });
 
-        const response = await fetch("http://127.0.0.1:8000/evaluar_documento/", {
-          method: "POST",
-          body: formData,
-        });
+      const response = await fetch("http://127.0.0.1:8000/evaluar_documento/", {
+        method: "POST",
+        body: formData,
+      });
 
-        if (!response.ok) {
-          throw new Error("Error al encolar: " + file.name);
-        }
-
-        const data = await response.json();
-        tasks.push({ task_id: data.task_id, documento: data.documento, status: "EN COLA" });
+      if (!response.ok) {
+        throw new Error("Error al encolar el lote de documentos.");
       }
-      setEnqueuedTasks(tasks);
+
+      const data = await response.json();
+      // data.tareas viene poblado con la lista de firmas de Celery
+      setEnqueuedTasks(data.tareas);
+      
       setFiles([]); // Limpiar cola visual
     } catch (err) {
       setError("Error de conexión. Asegúrate de que el backend FastAPI esté ejecutándose.");

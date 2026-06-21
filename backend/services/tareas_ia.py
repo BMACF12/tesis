@@ -145,6 +145,7 @@ DOCUMENTO A EVALUAR: {documento}"""
         # 4. Procesar respuesta y enrutar
         print("-> [CELERY] Procesando dictamen estructurado y ejecutando triage de archivos...")
         resultado_json = respuesta.model_dump()
+        resultado_json["nombre_original"] = nombre_original
         
         # 5. Ejecutar orquestador físico
         enrutar_documento(resultado_json, ruta_pdf, nombre_original)
@@ -174,3 +175,84 @@ DOCUMENTO A EVALUAR: {documento}"""
         # Si es un error transitorio, reintenta
         print("-> [CELERY] Reencolando la tarea en Redis para reintento automático...")
         raise self.retry(exc=error)
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
+def generar_reporte_ejecutivo(self, resultados_lote: list, id_lote: str):
+    """
+    Callback asíncrono ejecutado al terminar todo el lote (Chord).
+    Recibe la lista de los diccionarios retornados por auditar_documento_pesado.
+    """
+    try:
+        from fpdf import FPDF
+        from fpdf.fonts import FontFace
+        from datetime import datetime
+        import os
+        
+        print(f"-> [CELERY] Generando Reporte Ejecutivo para el lote {id_lote} con {len(resultados_lote)} documentos...")
+        
+        # Calcular estadísticas
+        total_docs = len(resultados_lote)
+        cumplen = sum(1 for r in resultados_lote if r.get("veredicto", "") == "CUMPLE")
+        cumplen_parcial = sum(1 for r in resultados_lote if r.get("veredicto", "") == "CUMPLE PARCIALMENTE")
+        no_cumplen = sum(1 for r in resultados_lote if r.get("veredicto", "") == "NO CUMPLE")
+        errores = sum(1 for r in resultados_lote if "ERROR" in r.get("veredicto", ""))
+        
+        # Directorio
+        base_dir = "./Auditoria_CACES"
+        repo_dir = os.path.join(base_dir, "Reportes_Ejecutivos")
+        os.makedirs(repo_dir, exist_ok=True)
+        ruta_salida = os.path.join(repo_dir, f"Reporte_Ejecutivo_{id_lote}.pdf")
+        
+        # Generar PDF
+        pdf = FPDF(orientation="P", unit="mm", format="A4")
+        pdf.add_page()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        
+        pdf.set_font("helvetica", style="B", size=18)
+        pdf.cell(0, 10, "Reporte Ejecutivo Global de Auditoría", align="C", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(5)
+        
+        pdf.set_font("helvetica", style="B", size=12)
+        pdf.cell(0, 8, f"ID Lote: {id_lote}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 8, f"Fecha: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(5)
+        
+        pdf.set_font("helvetica", style="B", size=14)
+        pdf.cell(0, 10, "1. Estadísticas Globales", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("helvetica", size=12)
+        pdf.cell(0, 8, f"Total de documentos procesados: {total_docs}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 8, f"Documentos Aprobados ('Cumple'): {cumplen}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 8, f"Documentos con Observaciones ('Parcial'): {cumplen_parcial}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 8, f"Documentos Rechazados ('No Cumple'): {no_cumplen}", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 8, f"Errores de Análisis: {errores}", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(8)
+        
+        pdf.set_font("helvetica", style="B", size=14)
+        pdf.cell(0, 10, "2. Detalle por Documento", new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(2)
+        
+        pdf.set_font("helvetica", size=10)
+        with pdf.table(col_widths=(70, 60, 35, 25), text_align=("L", "L", "C", "C"), headings_style=FontFace(emphasis="B")) as table:
+            headers = table.row()
+            for h in ("Documento", "Indicador", "Veredicto", "Puntaje"):
+                headers.cell(h)
+                
+            for res in resultados_lote:
+                row = table.row()
+                row.cell(str(res.get("nombre_original", "Desconocido")))
+                row.cell(str(res.get("indicador_evaluado", "N/A")))
+                veredicto = str(res.get("veredicto", "ERROR"))
+                if "NO CUMPLE" in veredicto or "ERROR" in veredicto:
+                    row.cell(veredicto, style=FontFace(emphasis="B"))
+                else:
+                    row.cell(veredicto)
+                row.cell(f"{res.get('porcentaje_estimado', 0)}%")
+                
+        pdf.output(ruta_salida)
+        print(f"-> [CELERY] Reporte Ejecutivo generado exitosamente en: {ruta_salida}")
+        return {"reporte_ejecutivo": ruta_salida, "estadisticas": {"total": total_docs, "cumplen": cumplen}}
+    except Exception as e:
+        print(f"-> [CELERY] Error fatal generando reporte ejecutivo: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise self.retry(exc=e)
