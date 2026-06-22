@@ -1,9 +1,0 @@
-=== DICTAMEN OFICIAL DE AUDITORÍA CACES ===
-Fecha: 2026-06-17 13:38:03
-Documento Analizado: 2022 LNM PORTAFOLIO DOCENTE.pdf
-Regla/Indicador: INDICADOR 5: Metodología y recursos de aprendizaje
-Veredicto IA: CUMPLE PARCIALMENTE
-Porcentaje Estimado: 80%
---------------------------------------------------
-JUSTIFICACIÓN TÉCNICA:
-El documento presenta lineamientos para el portafolio docente que incluyen la estructura general, los componentes del portafolio, el seguimiento al sílabo, el informe de gestión final y las tutorías de reforzamiento. Sin embargo, no se menciona explícitamente la consideración de metodologías y técnicas pedagógicas centradas en el estudiante, ni la evaluación formativa y sumativa respetando necesidades educativas especiales. Además, no se menciona la inclusión de experiencias para ampliar conocimientos interculturales e internacionales. El documento cumple parcialmente con el indicador, ya que presenta algunos elementos fundamentales, pero falta claridad y detalle en otros aspectos importantes.

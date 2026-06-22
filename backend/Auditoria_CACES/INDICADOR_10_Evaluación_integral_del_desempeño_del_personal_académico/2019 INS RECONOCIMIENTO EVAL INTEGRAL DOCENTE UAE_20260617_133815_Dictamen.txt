@@ -1,9 +1,0 @@
-=== DICTAMEN OFICIAL DE AUDITORÍA CACES ===
-Fecha: 2026-06-17 13:38:15
-Documento Analizado: 2019 INS RECONOCIMIENTO EVAL INTEGRAL DOCENTE UAE.pdf
-Regla/Indicador: INDICADOR 10: Evaluación integral del desempeño del personal académico
-Veredicto IA: CUMPLE PARCIALMENTE
-Porcentaje Estimado: 80%
---------------------------------------------------
-JUSTIFICACIÓN TÉCNICA:
-El documento presenta los componentes principales de la evaluación integral del desempeño docente, como la planificación, ejecución y difusión de la evaluación, la participación de autoridades, pares y estudiantes, y el uso de los resultados para la toma de decisiones y mejora del desempeño. Sin embargo, falta claridad en la descripción de las actividades de retroalimentación y seguimiento de los resultados, y no se menciona explícitamente la realización de la evaluación al menos una vez en cada período académico. Además, el documento se enfoca en la evaluación de los docentes en las Unidades Académicas Especiales y no se menciona la aplicación de la evaluación en toda la institución.

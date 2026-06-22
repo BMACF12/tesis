@@ -63,7 +63,12 @@ GOOGLE_API_KEY=tu_api_key_de_gemini_aqui
 Por única vez (o cuando se actualice la normativa), debes crear la base de conocimiento vectorial de ChromaDB:
 ```bash
 # Estando dentro de la carpeta 'backend' y con el venv activado:
+
+# 3.A Crear la base de oro con la normativa del CACES:
 python scripts/crear_base_oro.py
+
+# 3.B Ingestar el Documento Maestro de Ingeniería de Software (Obligatorio para la validación de pertinencia):
+python scripts/ingestar_maestro.py
 ```
 
 ### PASO 4: Encender la API (Servidor Web)
@@ -101,6 +106,7 @@ npm run dev
 ## 🎯 ¿Cómo usar el sistema?
 
 1. Ve a **`http://localhost:3000`** en tu navegador.
-2. Arrastra y suelta un lote completo de PDFs (ej. 5 sílabos al mismo tiempo) en la caja principal.
+2. Arrastra y suelta un lote completo de PDFs (ej. 10 documentos mezclados) en la caja principal.
 3. Haz clic en "Analizar y Clasificar".
-4. Disfruta de la magia. Verás cómo los archivos pasan al estado "EN COLA". Celery los irá tomando uno a uno desde Redis y los procesará sin colapsar tu navegador. Las tarjetas gráficas se abrirán como un acordeón a medida que lleguen los resultados de los dictámenes generados por Llama-3.
+4. Disfruta de la magia. Verás cómo los archivos pasan al estado "EN COLA". Celery los agrupará y los procesará en segundo plano asíncronamente.
+5. Gracias a la avanzada **orquestación por lotes (Celery Chord)** y al **RAG Multidocumento**, el sistema detectará automáticamente si un documento pertenece a la carrera de Software o no, lo descartará si es necesario, y al finalizar todo el lote generará automáticamente un **Reporte Ejecutivo Global** en PDF resumiendo las estadísticas del bloque evaluado, junto a sus reportes individuales.

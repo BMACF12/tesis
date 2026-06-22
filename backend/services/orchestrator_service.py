@@ -53,6 +53,28 @@ def generar_reporte_pdf(dictamen: dict, ruta_salida: str, nombre_original: str):
     pdf.cell(45, 8, "Cumplimiento:", new_x="RIGHT")
     pdf.set_font("helvetica", size=11)
     pdf.cell(0, 8, f"{dictamen.get('porcentaje_estimado', 0)}%", new_x="LMARGIN", new_y="NEXT")
+    
+    # Pertinencia a la Carrera
+    pertenece = dictamen.get("pertenece_software", True)
+    just_software = dictamen.get("justificacion_software", "No especificada.")
+    
+    pdf.set_font("helvetica", style="B", size=11)
+    pdf.cell(45, 8, "Pertinencia Carrera:", new_x="RIGHT")
+    pdf.set_font("helvetica", size=11)
+    pdf.cell(0, 8, "Sí" if pertenece else "No", new_x="LMARGIN", new_y="NEXT")
+    
+    pdf.set_font("helvetica", style="B", size=11)
+    pdf.cell(45, 8, "Justif. Pertinencia:", new_x="RIGHT")
+    pdf.set_font("helvetica", size=11)
+    pdf.multi_cell(0, 8, just_software, new_x="LMARGIN", new_y="NEXT")
+    
+    if not pertenece:
+        pdf.ln(2)
+        pdf.set_font("helvetica", style="B", size=11)
+        pdf.set_text_color(255, 0, 0)
+        pdf.multi_cell(0, 8, "ATENCIÓN: Este documento fue descartado de la auditoría principal por no pertenecer a la carrera de Ingeniería de Software.", align="C", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
+        
     pdf.ln(8)
     
     # Sección de Análisis Libre
@@ -97,6 +119,16 @@ def generar_reporte_pdf(dictamen: dict, ruta_salida: str, nombre_original: str):
     # Guardar archivo
     pdf.output(ruta_salida)
 
+def obtener_carpeta_indicador(indicador: str) -> str:
+    ind_lower = indicador.lower()
+    if "perfil" in ind_lower: return "Indicador_1_Perfil_de_egreso"
+    if "malla" in ind_lower: return "Indicador_3_Malla_curricular"
+    if "syllabus" in ind_lower or "sílabo" in ind_lower or "silabo" in ind_lower: return "Indicador_4_Syllabus"
+    if "metodolog" in ind_lower: return "INDICADOR_5_Metodología_y_recursos_de_aprendizaje"
+    if "tecnolog" in ind_lower or "tac" in ind_lower.split(): return "INDICADOR_7_Tecnologías_para_el_aprendizaje_y_conocimiento_TAC"
+    if "evaluación" in ind_lower or "desempeño" in ind_lower: return "INDICADOR_10_Evaluación_integral_del_desempeño_del_personal_académico"
+    return sanitizar_nombre(indicador)
+
 def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_original: str) -> str:
     """
     Orquesta el movimiento del archivo PDF a su carpeta correspondiente 
@@ -108,8 +140,6 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
     # Extraer datos del JSON de forma segura
     veredicto = resultado_llm.get("veredicto", "ERROR").upper()
     indicador = resultado_llm.get("indicador_evaluado", "Indicador_Desconocido")
-    porcentaje = resultado_llm.get("porcentaje_estimado", "0")
-    justificacion = resultado_llm.get("justificacion", "")
     
     # 1. Generar Timestamp para evitar sobreescrituras
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -118,24 +148,26 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
     nuevo_nombre_reporte = f"{nombre_base}_{timestamp}_Reporte.pdf"
     
     # 2. Lógica de Triage (Enrutamiento)
-    if "ERROR" in veredicto:
-        carpeta_destino = os.path.join(BASE_DIR, "99_Descarte_Errores")
-        crear_reporte = False # No generar reporte detallado para errores
-    elif "NO CUMPLE" in veredicto:
+    pertenece = resultado_llm.get("pertenece_software", True)
+    
+    if not pertenece:
+        # Si no pertenece a la carrera, se rechaza inmediatamente
         carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
         crear_reporte = True
-    elif "CUMPLE PARCIALMENTE" in veredicto:
-        nombre_carpeta = sanitizar_nombre(indicador)
-        carpeta_destino = os.path.join(BASE_DIR, nombre_carpeta)
-        crear_reporte = True
-    else: # "CUMPLE"
-        nombre_carpeta = sanitizar_nombre(indicador)
-        carpeta_destino = os.path.join(BASE_DIR, nombre_carpeta)
-        crear_reporte = False # Ahorro de almacenamiento
-        
-    # Crear carpeta destino siempre (exist_ok=True evita el FileExistsError)
+    else:
+        # Lógica de triage normal
+        if "ERROR" in veredicto:
+            carpeta_destino = os.path.join(BASE_DIR, "99_Descarte_Errores")
+            crear_reporte = False
+        elif "NO CUMPLE" in veredicto:
+            carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
+            crear_reporte = True
+        else: 
+            # "CUMPLE" o "CUMPLE PARCIALMENTE" van a la carpeta de su indicador oficial
+            carpeta_destino = os.path.join(BASE_DIR, obtener_carpeta_indicador(indicador))
+            crear_reporte = True
+            
     os.makedirs(carpeta_destino, exist_ok=True)
-    
     ruta_final_pdf = os.path.join(carpeta_destino, nuevo_nombre_pdf)
     ruta_final_reporte = os.path.join(carpeta_destino, nuevo_nombre_reporte)
     

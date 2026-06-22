@@ -1,9 +1,0 @@
-=== DICTAMEN OFICIAL DE AUDITORÍA CACES ===
-Fecha: 2026-06-17 13:38:43
-Documento Analizado: 2022 LNM CAPACITACION DOCENTE.pdf
-Regla/Indicador: INDICADOR 7: Tecnologías para el aprendizaje y conocimiento (TAC)
-Veredicto IA: CUMPLE PARCIALMENTE
-Porcentaje Estimado: 60%
---------------------------------------------------
-JUSTIFICACIÓN TÉCNICA:
-El documento presenta lineamientos para la ejecución del Plan de Actualización y Capacitación del Personal Académico 2022, lo que implica el uso de tecnologías para el aprendizaje y conocimiento. Se menciona la capacitación de profesores en el uso de tecnologías y la ejecución de programas de capacitación, lo que sugiere el uso de TAC. Sin embargo, no se menciona explícitamente el uso de entornos virtuales, simuladores o programas ofimáticos para desarrollar destrezas, ni se presentan resultados del uso de TAC que muestren contribución al desarrollo de habilidades de la profesión. Además, no se menciona el seguimiento y evaluación de las TAC aplicadas de manera explícita. Por lo tanto, el documento cumple parcialmente con el indicador.

@@ -1,9 +1,0 @@
-=== DICTAMEN OFICIAL DE AUDITORÍA CACES ===
-Fecha: 2026-06-17 13:37:12
-Documento Analizado: informacion_carrera_isoj_ltga.pdf
-Regla/Indicador: INDICADOR 7: Tecnologías para el aprendizaje y conocimiento (TAC)
-Veredicto IA: CUMPLE PARCIALMENTE
-Porcentaje Estimado: 60%
---------------------------------------------------
-JUSTIFICACIÓN TÉCNICA:
-El documento presenta algunos elementos fundamentales relacionados con el uso de tecnologías para el aprendizaje y conocimiento, como la mención a la utilización de entornos virtuales y simuladores para desarrollar destrezas, y la capacitación de profesores en el uso de TAC. Sin embargo, no se encuentran evidencias explícitas de la aplicación de políticas que guíen la utilización de TAC, ni del seguimiento y evaluación de las TAC aplicadas. Además, no se presentan registros de uso de TAC por parte de estudiantes, ni evidencias de capacitación a profesores en TAC. Se menciona la importancia de la formación continua y la actualización en tecnologías, pero no se detalla cómo se implementa esto en la carrera. En general, el documento muestra una visión integral de la carrera y su relación con las tecnologías, pero requiere más detalles y evidencias para cumplir completamente con el indicador.

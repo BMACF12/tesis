@@ -35,6 +35,8 @@ class ElementoChecklist(BaseModel):
     justificacion: str = Field(description="Evidencia o motivo exacto extraído del documento evaluado")
 
 class DictamenAuditoria(BaseModel):
+    pertenece_software: bool = Field(description="True si pertenece a Ingeniería de Software, False en caso contrario")
+    justificacion_software: str = Field(description="Explicación del porqué pertenece o no a la carrera")
     indicador_evaluado: str = Field(description="Nombre del indicador evaluado")
     veredicto: str = Field(description="'CUMPLE' o 'CUMPLE PARCIALMENTE' o 'NO CUMPLE'")
     porcentaje_estimado: int = Field(description="Porcentaje de 0 a 100")
@@ -104,11 +106,22 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
             embedding_function=embeddings
         )
         
-        resultados = vector_db.similarity_search(query_text, k=1)
-        if not resultados:
+        # 2.A Búsqueda del Contexto Normativo
+        resultados_norma = vector_db.similarity_search(query_text, k=1)
+        if not resultados_norma:
             raise ValueError("No se encontró un indicador correspondiente en la base de oro.")
-            
-        indicador_recuperado = resultados[0].page_content
+        indicador_recuperado = resultados_norma[0].page_content
+        
+        # 2.B Búsqueda del Documento Maestro
+        resultados_maestro = vector_db.similarity_search(
+            query="Perfil de egreso malla curricular ingeniería de software", 
+            k=1, 
+            filter={"tipo": "documento_maestro"}
+        )
+        contexto_maestro = resultados_maestro[0].page_content if resultados_maestro else "No se encontró el documento maestro."
+        
+        # Consolidación del contexto
+        contexto_combinado = f"--- CONTEXTO NORMATIVO CACES ---\n{indicador_recuperado}\n\n--- DOCUMENTO MAESTRO: INGENIERÍA DE SOFTWARE ---\n{contexto_maestro}"
 
         # 3. FASE DE EVALUACIÓN (Llama 3.3 via Groq)
         print("-> [CELERY] Evaluando documento con Groq LLM...")
@@ -117,7 +130,10 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
             temperature=0
         ).with_structured_output(DictamenAuditoria)
         
-        template_auditor = """Eres un auditor académico riguroso del CACES (Ecuador). Lee el documento proporcionado y el contexto recuperado de la normativa. Identifica el indicador correspondiente y evalúa el documento contra CADA UNO de los 'Elementos Fundamentales' o 'Requisitos' enumerados en el contexto. Debes generar un ítem en el checklist por cada elemento, dictaminando si cumple o no, acompañado de su justificación fáctica.
+        template_auditor = """Eres un auditor académico riguroso del CACES (Ecuador).
+Evalúa el documento proporcionado. Primero, compara su contenido (títulos, materias, objetivos) con el Perfil de Egreso y la Malla Curricular de Ingeniería de Software presentes en el contexto maestro. Si el documento tiene relación directa o las materias coinciden con la malla de Software, marca 'pertenece_software' como True. Si es un sílabo o documento de otra disciplina ajena, marca False y explica el motivo en 'justificacion_software'. Luego, procede a evaluar el checklist del CACES.
+
+Lee el documento proporcionado y el contexto combinado. Identifica el indicador correspondiente y evalúa el documento contra CADA UNO de los 'Elementos Fundamentales' o 'Requisitos' enumerados en el contexto normativo. Debes generar un ítem en el checklist por cada elemento, dictaminando si cumple o no, acompañado de su justificación fáctica.
 
 REGLAS DE EVALUACIÓN (CRITERIO EXPERTO):
 1. Equivalencia Semántica: El documento NO necesita usar las palabras exactas de la normativa. Evalúa si el 'propósito' o la 'esencia' del elemento fundamental está presente.
@@ -127,18 +143,18 @@ REGLAS DE EVALUACIÓN (CRITERIO EXPERTO):
    - "CUMPLE PARCIALMENTE": Faltan elementos secundarios o hay ambigüedad, pero el núcleo del documento es válido. Requiere correcciones.
    - "NO CUMPLE": Faltan elementos críticos e indispensables.
 
-INDICADOR Y CONTEXTO NORMATIVO: {indicador} 
+CONTEXTO COMBINADO (NORMATIVA Y MAESTRO): {contexto} 
 
 DOCUMENTO A EVALUAR: {documento}"""
 
         prompt = PromptTemplate(
-            input_variables=["indicador", "documento"],
+            input_variables=["contexto", "documento"],
             template=template_auditor
         )
         
         chain = prompt | llm
         respuesta: DictamenAuditoria = chain.invoke({
-            "indicador": indicador_recuperado,
+            "contexto": contexto_combinado,
             "documento": texto_completo
         })
         
