@@ -25,3 +25,4 @@ pytesseract
 celery
 redis
 fpdf2
+pdf2image
