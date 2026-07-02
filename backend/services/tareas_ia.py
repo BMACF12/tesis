@@ -162,19 +162,18 @@ DOCUMENTO A EVALUAR: {documento}"""
         print("-> [CELERY] Procesando dictamen estructurado y ejecutando triage de archivos...")
         resultado_json = respuesta.model_dump()
         resultado_json["nombre_original"] = nombre_original
-        
         # 4.1 Cálculo matemático estricto del porcentaje y veredicto basado en el checklist
         checklist = resultado_json.get("checklist", [])
         total_elementos = len(checklist)
         
         if total_elementos > 0:
             elementos_cumplidos = sum(1 for item in checklist if item.get("cumple") is True)
-            porcentaje_calculado = int((elementos_cumplidos / total_elementos) * 100)
+            porcentaje_calculado = round((elementos_cumplidos / total_elementos) * 100)
             
             # Asignación estricta de veredicto según los rangos acordados
             if porcentaje_calculado >= 70:
                 veredicto_calculado = "CUMPLE"
-            elif porcentaje_calculado >= 40:
+            elif porcentaje_calculado > 50:
                 veredicto_calculado = "CUMPLE PARCIALMENTE"
             else:
                 veredicto_calculado = "NO CUMPLE"
@@ -182,7 +181,7 @@ DOCUMENTO A EVALUAR: {documento}"""
             # Sobrescribimos lo que haya devuelto el LLM para garantizar exactitud matemática
             resultado_json["porcentaje_estimado"] = porcentaje_calculado
             resultado_json["veredicto"] = veredicto_calculado
-        
+            
         # 5. Ejecutar orquestador físico
         enrutar_documento(resultado_json, ruta_pdf, nombre_original)
         
