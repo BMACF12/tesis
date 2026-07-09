@@ -1,50 +1,103 @@
 === INDICADOR 1: Perfil de egreso ===
 DIMENSIÓN: Currículo
+ESTADO: NO_INSTRUMENTADO
 ESTÁNDAR: El perfil de egreso establece de manera clara y específica los resultados de aprendizaje que el estudiante alcanzará al término de su proceso formativo, en concordancia con el Modelo educativo.
+NOTA: No hay plantilla institucional verificada. No se evalúa conformidad de plantilla ni llenado de campos: sólo juicio semántico. No usar para métricas de precisión.
 ELEMENTOS FUNDAMENTALES:
-1. Integridad estructural y coherencia semántica
-2. Declaración explícita de los resultados de aprendizaje
-3. Contextualización de los dominios de la profesión
-4. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [SEMÁNTICO] Declara explícitamente los resultados de aprendizaje que alcanzará el estudiante al término de la formación.
+2. [SEMÁNTICO] Contextualiza los dominios teóricos, metodológicos y técnico-pedagógicos de la profesión.
+3. [SEMÁNTICO] Los saberes teóricos y prácticos declarados son verificables y observables.
+4. [SEMÁNTICO] Evidencia participación de actores externos (empleadores, graduados, organizaciones profesionales).
+5. [SEMÁNTICO] Declara mecanismos de seguimiento y evaluación para la mejora continua del perfil.
+CAMPOS QUE DEBEN ESTAR LLENOS: (no instrumentado; devuelve campos_vacios vacío)
+FUENTES DE INFORMACIÓN: Proyecto curricular de la carrera. Macro currículo vigente.
 
 === INDICADOR 2: Proyecto curricular ===
 DIMENSIÓN: Currículo
+ESTADO: NO_INSTRUMENTADO
 ESTÁNDAR: El proyecto o diseño curricular es coherente con el modelo educativo y misión institucional, describiendo metodologías, ambientes y recursos pedagógicos.
+NOTA: No hay plantilla institucional verificada. No se evalúa conformidad de plantilla ni llenado de campos: sólo juicio semántico. No usar para métricas de precisión.
 ELEMENTOS FUNDAMENTALES:
-1. Integridad estructural y coherencia semántica
-2. Coherencia institucional y alineación con el perfil de egreso
-3. Especificación de requisitos, evaluación y recursos pedagógicos
-4. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [SEMÁNTICO] Es coherente con el modelo educativo, la misión institucional y los resultados de aprendizaje del perfil de egreso.
+2. [SEMÁNTICO] Describe la pertinencia de la carrera frente a problemáticas globales, nacionales y a la demanda ocupacional.
+3. [SEMÁNTICO] Especifica requisitos de ingreso y egreso, y los mecanismos de evaluación del estudiante.
+4. [SEMÁNTICO] Describe los medios, ambientes y recursos pedagógicos que soportan el proceso formativo.
+5. [SEMÁNTICO] Declara políticas de actualización, seguimiento y mejora continua del currículo.
+CAMPOS QUE DEBEN ESTAR LLENOS: (no instrumentado; devuelve campos_vacios vacío)
+FUENTES DE INFORMACIÓN: Proyecto curricular de la carrera vigente.
 
 === INDICADOR 3: Malla curricular ===
 DIMENSIÓN: Currículo
-ESTÁNDAR: Las asignaturas en la malla curricular son coherentes con los resultados de aprendizaje definidos en el perfil de egreso.
+ESTADO: INSTRUMENTADO
+ESTÁNDAR: Las asignaturas de la malla curricular son coherentes con el perfil de egreso, y la malla declara de forma completa sus niveles, asignaturas, prerrequisitos y créditos.
+MARCADORES DE IDENTIFICACIÓN (si faltan ⇒ plantilla_valida=false): "MALLA CURRICULAR", "PAO", "HPAO".
+NOTA DE LECTURA: El documento se te entrega ya reconstruido desde las coordenadas del PDF, una línea por asignatura:
+CODIGO | NOMBRE | PRE: <prerrequisito> | HPAO: <horas> | CR: <créditos>
+Sólo la palabra literal VACIO indica un campo sin llenar. Las etiquetas de nivel llegan sin las letras "i" ("QuntoPAO" es "Quinto PAO", "UNDADBASCA" es "Unidad Básica"): reconócelas igualmente.
 ELEMENTOS FUNDAMENTALES:
-1. Identificación de semestres o niveles.
-2. Incluye distribución de asignaturas, identifica prerrequisitos
-3. Identifica prerrequisitos y correquisitos, y número de créditos.
-4. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [ESTRUCTURAL] Identificación institucional y de la carrera: aparecen el nombre de la universidad y el nombre literal de la carrera. Cita el nombre de la carrera.
+2. [ESTRUCTURAL] Identificación de niveles: aparecen los ocho PAO (Primer a Octavo) y las tres unidades de organización curricular (Básica, Profesional, Integración Curricular). Cumple sólo si están los ocho PAO.
+3. [ESTRUCTURAL] Distribución de asignaturas: cada asignatura tiene código y nombre. Cumple si ninguna línea trae VACIO en el nombre. Enumera al menos diez asignaturas.
+4. [ESTRUCTURAL] Prerrequisitos y correquisitos: toda asignatura declara su prerrequisito. Cumple si ninguna línea trae VACIO en PRE. Si ves "[CÓDIGO MALFORMADO]", el prerrequisito existe pero está mal escrito: repórtalo en analisis_libre, no como campo vacío.
+5. [ESTRUCTURAL] Créditos y carga horaria: toda asignatura declara HPAO y CR, y se cumple HPAO = 48 × CR. Cumple si ninguna línea trae VACIO y ninguna viola la razón 48.
+CAMPOS QUE DEBEN ESTAR LLENOS: nombre de la carrera; los ocho PAO; código y nombre de cada asignatura; PRE de cada asignatura; HPAO y CR de cada asignatura; sede o campus.
+VALORES QUE NO CUENTAN COMO CAMPO VACÍO:
+- "NIVELACION" y "N/A" en PRE: significan que la asignatura no tiene prerrequisito.
+- La suma de las 44 asignaturas (5040 h / 105 cr) no cuadra con el total declarado (5760 h / 120 cr) porque la integración curricular, las prácticas preprofesionales y el servicio a la comunidad no llevan código. NO lo reportes como incumplimiento.
+FUENTES DE INFORMACIÓN: Malla curricular vigente aprobada.
 
 === INDICADOR 4: Syllabus ===
 DIMENSIÓN: Currículo
-ESTÁNDAR: Los syllabus son coherentes con la malla curricular y permiten alcanzar los resultados de aprendizaje. Describen contenidos, metodologías, bibliografía y evaluación.
+ESTADO: INSTRUMENTADO
+ESTÁNDAR: Los syllabus son coherentes con la malla curricular y permiten alcanzar los resultados de aprendizaje. Describen contenidos, metodologías, bibliografía y evaluación, con todos sus campos llenos.
+MARCADORES DE IDENTIFICACIÓN (si faltan ⇒ plantilla_valida=false): "PROGRAMA DE ASIGNATURA - SÍLABO" y "SGC.DI.321".
+NOTA DE NUMERACIÓN: La plantilla NO tiene sección 5: salta de "4." a "6.", y el encabezado 4 está truncado ("...Y TÉCNICA DE"). No uses el número de sección: ancla cada elemento al texto de ANCLA. No reportes la ausencia de la sección 5. El encabezado "SISTEMA DE CONTENIDOS Y RESULTADOS DEL APRENDIZAJE" se repite por continuación de página: es una sola sección.
 ELEMENTOS FUNDAMENTALES:
-1. DATOS GENERALES.  
-2. SISTEMA DE CONTENIDOS Y RESULTADOS DEL APRENDIZAJE.  
-3. PROYECCIÓN METODOLÓGICA Y ORGANIZATIVA PARA EL DESARROLLO DE LA ASIGNATURA.  
-4. RESULTADOS DEL APRENDIZAJE, CONTRIBUCIÓN AL PERFIL DEL EGRESO.  
-5. TÉCNICAS Y PONDERACION DE LA EVALUACIÓN.  
-6. BIBLIOGRAFÍA BÁSICA/TEXTO GUÍA DE LA ASIGNATURA.  
-7. BIBLIOGRAFÍA COMPLEMENTARIA.  
-8. LECTURAS PRINCIPALES.  
-9. ACUERDOS.
-10. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [ESTRUCTURAL] ANCLA "DATOS GENERALES": existe la sección.
+2. [ESTRUCTURAL] ANCLA "SISTEMA DE CONTENIDOS Y RESULTADOS DEL APRENDIZAJE": declara unidades numeradas con contenidos, horas y actividades de aprendizaje.
+3. [ESTRUCTURAL] ANCLA "PROYECCIÓN METODOLÓGICA Y ORGANIZATIVA": declara métodos de enseñanza-aprendizaje y empleo de TIC.
+4. [SEMÁNTICO] ANCLA "CONTRIBUCIÓN AL PERFIL DEL EGRESO": declara resultados de aprendizaje por unidad curricular con nivel de logro y actividades integradoras, coherentes con la asignatura.
+5. [ESTRUCTURAL] ANCLA "TÉCNICAS Y PONDERACION DE LA EVALUACIÓN": existe la tabla de técnicas con ponderación por parcial y sus totales.
+6. [ESTRUCTURAL] ANCLA "BIBLIOGRAFÍA BÁSICA": lista al menos una obra con título y autor.
+7. [ESTRUCTURAL] ANCLA "BIBLIOGRAFÍA COMPLEMENTARIA": lista al menos una obra con título y autor.
+8. [ESTRUCTURAL] ANCLA "LECTURAS PRINCIPALES": lista al menos una lectura con tema y fuente.
+9. [ESTRUCTURAL] ANCLA "ACUERDOS": constan los acuerdos del docente y de los estudiantes, y "FIRMAS DE LEGALIZACIÓN" con nombres y cargos.
+CAMPOS QUE DEBEN ESTAR LLENOS: Modalidad; Departamento; Área de Conocimiento; Nombre Asignatura; Período Académico; Código; NRC; Nivel; Docente; carga horaria: DOCENCIA; carga horaria: PRACTICAS DE APLICACIÓN Y EXPERIMENTACIÓN; carga horaria: APRENDIZAJE AUTÓNOMO; Descripción de la Asignatura; Contribución de la Asignatura; Resultado de Aprendizaje de la Carrera; Objetivo de la Asignatura; Resultado de Aprendizaje de la Asignatura; contenidos de al menos una unidad con horas; tabla de técnicas y ponderación; nombres y cargos en FIRMAS DE LEGALIZACIÓN; Proyecto Integrador; Perfil sugerido del docente; Sesiones Semanales.
+VALORES QUE NO CUENTAN COMO CAMPO VACÍO:
+- "-" en las columnas Edición, Año o Idioma de una tabla bibliográfica.
+- Las celdas sin etiqueta dentro de DATOS GENERALES: son espaciadores de maquetación, no campos.
+FUENTES DE INFORMACIÓN: Sílabo firmado y legalizado de la asignatura.
 
 === INDICADOR 6: Escenarios de prácticas formativas ===
 DIMENSIÓN: Currículo
-ESTÁNDAR: Se planifica y desarrolla actividades prácticas en ambientes o escenarios específicos y coherentes con el currículo.
+ESTADO: INSTRUMENTADO
+ESTÁNDAR: Se planifica y desarrolla actividades prácticas en escenarios coherentes con el currículo, documentadas en guías de laboratorio completas, controladas y aprobadas.
+MARCADORES DE IDENTIFICACIÓN (si faltan ⇒ plantilla_valida=false): "GUIA DE USO DE LABORATORIO" y "A. INFORMACIÓN DE LA GUÍA".
 ELEMENTOS FUNDAMENTALES:
-A. INFORMACIÓN DE LA GUÍA
-B. CONTROL DE CAMBIOS
-C. APROBACIÓN
-D. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [ESTRUCTURAL] ANCLA "A. INFORMACIÓN DE LA GUÍA": existe la sección con sus campos de identificación.
+2. [SEMÁNTICO] Planificación pedagógica: INTRODUCCIÓN, OBJETIVOS, ACTIVIDADES POR DESARROLLAR y RESULTADOS OBTENIDOS están llenos y son coherentes entre sí; las actividades conducen a los resultados.
+3. [ESTRUCTURAL] Recursos: están llenos EQUIPOS, MATERIALES E INSUMOS, REACTIVOS, MUESTRA / OTROS y PRECAUCIONES/ INSTRUCCIONES.
+4. [ESTRUCTURAL] ANCLA "B. CONTROL DE CAMBIOS": existe al menos una fila con Fecha, Versión, Unidad/Nombre y Detalle del cambio.
+5. [ESTRUCTURAL] ANCLA "C. APROBACIÓN": constan las tres filas "Elaborado por", "Revisado por" y "Aprobado por", cada una con contenido en Nombre y en Unidad/Cargo.
+CAMPOS QUE DEBEN ESTAR LLENOS: FECHA de cabecera; DEPARTAMENTO; CARRERA; ASIGNATURA; PERIODO; NIVEL; DOCENTE; NRC; PRÁCTICA No; TEMA DE LA PRÁCTICA; NUMERO DE HORAS; INTRODUCCIÓN; OBJETIVOS; EQUIPOS; MATERIALES E INSUMOS; REACTIVOS; MUESTRA / OTROS; PRECAUCIONES/ INSTRUCCIONES; ACTIVIDADES POR DESARROLLAR; RESULTADOS OBTENIDOS; CONCLUSIONES; RECOMENDACIONES; una fila de B. CONTROL DE CAMBIOS; las tres filas de C. APROBACIÓN.
+VALORES QUE NO CUENTAN COMO CAMPO VACÍO:
+- "NA" y "N/A" en REACTIVOS y en MUESTRA / OTROS: una práctica de software no emplea reactivos ni muestras.
+- La celda de LABORATORIO DONDE SE DESARROLLARÁ LA PRÁCTICA se considera llena cuando contiene la etiqueta "SALA:", aunque no se especifique laboratorio ni número de sala.
+- La columna "Firma" de C. APROBACIÓN: la firma gráfica no es recuperable del texto.
+FUENTES DE INFORMACIÓN: Guías de laboratorio de las asignaturas con componente experimental.
+
+=== REGLAS GENERALES DE EVALUACIÓN ===
+
+1. PLANTILLA (primer paso): comprueba los MARCADORES DE IDENTIFICACIÓN del indicador. Si el documento no es la plantilla oficial, marca plantilla_valida=false, marca todos los elementos como no cumple y no evalúes nada más. Un documento con la plantilla equivocada es un problema distinto de uno con la plantilla correcta mal llenada.
+
+2. AUSENTE vs VACÍO: una sección AUSENTE no tiene encabezado en el documento; un campo VACÍO tiene su etiqueta pero nada después. Nombra siempre la sección o el campo exacto.
+
+3. LLENO SIGNIFICA "TIENE CONTENIDO": no juzgues la calidad ni la corrección de lo escrito en un campo. Si hay algo escrito, el campo está lleno, aunque sea un cargo donde se esperaba un nombre o un texto truncado. Un campo cuyo contenido sea "No aplica", "N/A" o "NA" ESTÁ LLENO: es una respuesta, no una ausencia. La única excepción son los elementos marcados [SEMÁNTICO].
+
+4. EFECTO DE UN CAMPO VACÍO: campos_vacios es una OBSERVACIÓN para el responsable, no cambia el veredicto. El veredicto lo decide la estructura: los elementos fundamentales cumplidos. Por eso, si dudas de si un campo está lleno, NO lo incluyas: sólo enumera aquellos cuya etiqueta ves en el documento sin nada escrito después.
+
+5. ESTRUCTURAL vs SEMÁNTICO: en un elemento [ESTRUCTURAL] la sección debe existir con su encabezado literal (ANCLA). En un elemento [SEMÁNTICO] evalúa si el propósito está presente, sin exigir las palabras exactas.
+
+6. PROHIBICIÓN DE INFERENCIA: no supongas que un campo está lleno porque el documento "debería" tenerlo. Si no lo lees, no cumple. Cita el fragmento literal en cada justificación.
+
+7. REPORTE: en campos_vacios enumera todos los campos de CAMPOS QUE DEBEN ESTAR LLENOS que el documento deja sin contenido, con su nombre exacto. Es el resultado más útil de la auditoría: el responsable debe saber qué llenar.

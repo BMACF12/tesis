@@ -1,112 +1,208 @@
-# Auditor IA - Sistema de Evaluación Normativa CACES (N-Capas)
+# Auditor IA — Evaluación automatizada de evidencias CACES
 
-Este proyecto implementa un sistema automatizado de evaluación de evidencias documentales (Sílabos, Mallas Curriculares, etc.) basado en la normativa oficial del CACES (Ecuador) 2024. 
+Sistema que clasifica, audita y archiva evidencias documentales de acreditación (sílabos,
+mallas curriculares, guías de laboratorio) contra la normativa del CACES (Ecuador, 2024).
 
-El sistema ha sido escalado a una **Arquitectura de N-Capas** robusta para manejar procesamiento concurrente y masivo de PDFs sin colapsar, integrando:
-- **Frontend:** Interfaz de usuario interactiva y moderna construida con Next.js (React) y TailwindCSS.
-- **Backend (API):** Servidor web de alto rendimiento con FastAPI.
-- **Cola de Tareas (Broker):** Redis.
-- **Worker Asíncrono:** Celery para procesar la Inteligencia Artificial en segundo plano.
-- **IA y RAG:** LangChain, ChromaDB (Base de datos vectorial), Groq (LLM ultrarrápido) y Google Gemini (Embeddings).
+Por cada PDF produce un dictamen estructurado, un reporte individual en PDF, y lo mueve a
+la carpeta de su indicador. Al terminar un lote genera un reporte ejecutivo global.
 
----
-
-## 🛠️ Requisitos Previos del Sistema
-
-Antes de comenzar, asegúrate de tener instalado lo siguiente en tu máquina:
-
-1. **Python 3.10 o superior**: Asegúrate de marcar **"Add Python to PATH"** durante la instalación.
-2. **Node.js (LTS)**: Necesario para levantar el entorno del Frontend (Next.js). Descárgalo desde [nodejs.org](https://nodejs.org/).
-3. **Docker Desktop**: Requerido para levantar fácilmente la base de datos Redis. Descárgalo desde [docker.com](https://www.docker.com/).
-4. **Git**: Para clonar el repositorio.
-
-### Dependencias Nativas para Windows (Muy Importante)
-El sistema extrae texto e imágenes complejas de los PDF. **Es estrictamente obligatorio** tener instalados a nivel de sistema operativo:
-1. **Poppler** (Para el procesamiento base del PDF). Descárgalo, colócalo en `C:\poppler` y añade `C:\poppler\bin` a tus variables de entorno (PATH).
-2. **Tesseract OCR** (Para leer texto incrustado en imágenes). Instálalo y añade `C:\Program Files\Tesseract-OCR` a tus variables de entorno (PATH).
-
-> **⚠️ Advertencia:** Después de modificar el PATH en Windows, es obligatorio reiniciar tus terminales y el editor de código.
+**Capas:** Next.js (UI) → FastAPI (API) → Redis (cola) → Celery (worker) → ChromaDB (RAG) +
+Groq / Llama 3.3 (dictamen) + Gemini (embeddings).
 
 ---
 
-## 🚀 Guía de Instalación y Despliegue (Paso a Paso)
+## 1. Requisitos
 
-Sigue estos pasos en orden para encender todas las capas del sistema.
+| Software | Versión | Necesario para |
+|---|---|---|
+| Python | 3.11 | Backend y worker |
+| Node.js | LTS | Frontend |
+| Docker Desktop | cualquiera | Redis |
+| Git | cualquiera | Clonar |
 
-### PASO 1: Levantar Redis (El Broker de Mensajes)
-Abre una terminal y ejecuta Docker para descargar e iniciar Redis en el puerto por defecto (6379):
+**Poppler y Tesseract no hacen falta.** Los PDFs institucionales traen capa de texto y se leen
+con `pdfminer.six`, conservando las coordenadas. El OCR sólo se activaría ante un PDF escaneado;
+en ese caso hay que instalar los extras comentados al final de `backend/requirements.txt` y
+añadir Poppler y Tesseract al `PATH`.
+
+---
+
+## 2. Instalación
+
+El entorno virtual vive en **la raíz del proyecto**, no dentro de `backend/`.
+
 ```bash
-docker run -d -p 6379:6379 --name redis-caces redis
-```
+git clone <repo> tesis
+cd tesis
 
-### PASO 2: Configurar el Backend (FastAPI + Celery)
-Abre una nueva terminal y navega a la carpeta del backend:
-```bash
-# 1. Entrar al backend
-cd backend
-
-# 2. Crear y activar entorno virtual
 python -m venv venv
-.\venv\Scripts\activate   # (En Mac/Linux usa: source venv/bin/activate)
+.\venv\Scripts\activate          # macOS/Linux: source venv/bin/activate
 
-# 3. Instalar absolutamente todas las librerías
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-Crea un archivo `.env` en la carpeta `backend` con tus claves de acceso:
+Para reproducir el entorno exacto de las pruebas (todas las transitivas fijadas):
+
+```bash
+pip install -r backend/requirements.lock.txt
+```
+
+Crea `backend/.env` con tus claves:
+
 ```env
-GROQ_API_KEY=tu_api_key_de_groq_aqui
-GOOGLE_API_KEY=tu_api_key_de_gemini_aqui
+GROQ_API_KEY=tu_api_key_de_groq
+GOOGLE_API_KEY=tu_api_key_de_gemini
 ```
 
-### PASO 3: Construir la "Base de Oro" (RAG)
-Por única vez (o cuando se actualice la normativa), debes crear la base de conocimiento vectorial de ChromaDB:
-```bash
-# Estando dentro de la carpeta 'backend' y con el venv activado:
+---
 
-# 3.A Crear la base de oro con la normativa del CACES:
-python scripts/crear_base_oro.py
+## 3. Construir la Base de Oro
 
-# 3.B Ingestar el Documento Maestro de Ingeniería de Software (Obligatorio para la validación de pertinencia):
-python scripts/ingestar_maestro.py
-```
+La normativa vive en `backend/data/caces_2024_oficial.txt`: un bloque por indicador, más un
+bloque de reglas generales. `crear_base_oro.py` **borra y recrea** el directorio `chroma_data`,
+así que el orden importa:
 
-### PASO 4: Encender la API (Servidor Web)
-Deja esta terminal abierta ejecutando el backend de FastAPI:
-```bash
-# Estando dentro de la carpeta 'backend' y con el venv activado:
-uvicorn main:app --reload
-```
-La API Gateway quedará escuchando en `http://127.0.0.1:8000`.
-
-### PASO 5: Encender el Worker de Celery (Cerebro de la IA)
-Abre una **NUEVA terminal**, navega a la carpeta `backend`, activa el entorno virtual y ejecuta el "obrero" que procesará los PDFs pesados en segundo plano:
 ```bash
 cd backend
-.\venv\Scripts\activate
-
-# Comando para encender Celery en Windows:
-celery -A services.tareas_ia worker --loglevel=info --pool=solo
+python scripts/crear_base_oro.py     # un vector por indicador + reglas
+python scripts/ingestar_maestro.py   # perfil y malla de Ingeniería de Software
 ```
 
-### PASO 6: Encender el Frontend (Next.js)
-Abre una **NUEVA terminal**, navega a la carpeta `frontend` y lanza la interfaz de usuario:
+> Repite ambos pasos **cada vez que edites** `caces_2024_oficial.txt`. El worker lee la norma
+> desde ChromaDB, no desde el archivo.
+
+Salida esperada:
+
+```
+  [norma ] indicador  1 |  1177 chars | Perfil de egreso
+  [norma ] indicador  2 |  1151 chars | Proyecto curricular
+  [norma ] indicador  3 |  2352 chars | Malla curricular
+  [norma ] indicador  4 |  2752 chars | Syllabus
+  [norma ] indicador  6 |  2079 chars | Escenarios de prácticas formativas
+  [reglas] indicador  0 |  1681 chars | Reglas generales
+```
+
+---
+
+## 4. Levantar el sistema
+
+Cuatro terminales, en este orden.
+
 ```bash
-cd frontend
+# 1. Redis
+docker run -d -p 6379:6379 --name redis-caces redis
 
-# 1. Instalar dependencias de Node
+# 2. API  (desde tesis/backend, con el venv activo)
+uvicorn main:app --reload
+
+# 3. Worker (desde tesis/backend, con el venv activo)
+celery -A services.tareas_ia worker --loglevel=info --pool=solo
+
+# 4. Frontend (desde tesis/frontend)
 npm install
-
-# 2. Levantar servidor de desarrollo
 npm run dev
 ```
 
+Abre `http://localhost:3000`, arrastra los PDFs y pulsa *Analizar y Clasificar*.
+
+> **El worker de Celery NO recarga el código.** `uvicorn --reload` sí, pero el worker no.
+> Cada vez que toques `services/*.py` hay que pararlo con `Ctrl+C` y relanzarlo, o seguirá
+> ejecutando la versión anterior. Ver §7.
+
 ---
 
-## 🎯 ¿Cómo usar el sistema?
+## 5. Cómo evalúa
 
-1. Ve a **`http://localhost:3000`** en tu navegador.
-2. Arrastra y suelta un lote completo de PDFs (ej. 10 documentos mezclados) en la caja principal.
-3. Haz clic en "Analizar y Clasificar".
-4. Disfruta de la magia. Verás cómo los archivos pasan al estado "EN COLA". Celery los agrupará y los procesará en segundo plano asíncronamente.
-5. Gracias a la avanzada **orquestación por lotes (Celery Chord)** y al **RAG Multidocumento**, el sistema detectará automáticamente si un documento pertenece a la carrera de Software o no, lo descartará si es necesario, y al finalizar todo el lote generará automáticamente un **Reporte Ejecutivo Global** en PDF resumiendo las estadísticas del bloque evaluado, junto a sus reportes individuales.
+1. **Extracción.** `services/extraccion.py` lee la capa de texto con coordenadas y reconstruye
+   el orden visual agrupando las cajas por solapamiento vertical. La malla curricular, que es
+   un diagrama apaisado, se reconstruye celda por celda: una línea por asignatura con su
+   código, nombre, prerrequisito, horas y créditos.
+2. **Enrutado.** Palabras clave sobre los primeros 1500 caracteres deciden el indicador. Si
+   aciertan, la norma se lee de ChromaDB **por metadatos** (sin llamada de embeddings). Si no,
+   se cae a búsqueda por similitud filtrada a `tipo="norma"`, y el resultado queda marcado con
+   `enrutado_por="similitud"` para poder excluirlo de las métricas.
+3. **Dictamen.** Llama 3.3 recibe las reglas generales, el bloque del indicador, el documento
+   maestro de la carrera y el documento, y devuelve salida estructurada validada con Pydantic.
+4. **Veredicto.** No lo decide el LLM. Se deriva en `_calcular_veredicto`:
+
+   | Condición | Veredicto |
+   |---|---|
+   | No usa la plantilla oficial | `PLANTILLA NO RECONOCIDA` |
+   | No pertenece a la carrera | `NO CUMPLE` (0%) |
+   | Elementos cumplidos ≤ 50% | `NO CUMPLE` |
+   | ≥ 70% y ningún campo vacío | `CUMPLE` |
+   | Resto | `CUMPLE PARCIALMENTE` |
+
+   El porcentaje mide **la estructura** (elementos fundamentales). Un campo sin llenar no
+   invalida el documento: sólo topa el veredicto en `CUMPLE PARCIALMENTE`, porque basta con
+   llenarlo.
+5. **Archivado.** `services/orchestrator_service.py` copia el PDF y su reporte a la carpeta
+   del indicador, o a `11_Documentos_Rechazados`, `12_Plantilla_No_Reconocida` o
+   `99_Descarte_Errores` según el caso.
+
+---
+
+## 6. Estructura de salida
+
+```
+backend/Auditoria_CACES/
+├── Indicador_1_Perfil_de_egreso/
+├── Indicador_2_Proyecto_curricular/
+├── Indicador_3_Malla_curricular/
+├── Indicador_4_Syllabus/
+├── Indicador_6_Escenarios_de_practicas_formativas/
+├── 11_Documentos_Rechazados/        # no cumple, o de otra carrera
+├── 12_Plantilla_No_Reconocida/      # no es la plantilla oficial
+├── 99_Descarte_Errores/             # PDF ilegible o fallo de API
+└── Reportes_Ejecutivos/             # un PDF por lote
+```
+
+---
+
+## 7. Problemas frecuentes
+
+**El worker sigue usando código viejo.** Celery no recarga. Párale y relánzalo:
+
+```bash
+# Ctrl+C en la terminal del worker, luego:
+celery -A services.tareas_ia worker --loglevel=info --pool=solo
+```
+
+**Quedan tareas encoladas o resultados viejos en Redis.** Vacía la cola y el backend de
+resultados (esto borra también los estados que consulta el frontend):
+
+```bash
+celery -A services.tareas_ia purge -f          # sólo la cola de tareas
+docker exec -it redis-caces redis-cli FLUSHALL # cola + resultados
+```
+
+**Groq devuelve `429 Too Many Requests`.** Estás en el techo de tokens por minuto. El cliente
+reintenta solo, con esperas de ~30 s. Sube documentos en lotes más pequeños o espacia los envíos.
+
+**El frontend muestra `EN COLA` para siempre.** Los resultados de Celery caducan en Redis a
+las 24 h. Si consultas un `task_id` antiguo, el estado vuelve a `PENDING`.
+
+**`ModuleNotFoundError` al lanzar el worker.** Estás usando el venv equivocado. El bueno está
+en la raíz (`tesis/venv`), no en `tesis/backend/venv`. Si existe ese directorio, bórralo:
+
+```bash
+rm -rf backend/venv
+```
+
+---
+
+## 8. Limitaciones conocidas
+
+- **Los indicadores 1 y 2 no están instrumentados.** No hay plantilla institucional verificada
+  para el perfil de egreso ni el proyecto curricular, así que se evalúan sólo con criterios
+  semánticos y no deben usarse para métricas de precisión.
+- **El sistema no es determinista.** Aunque `temperature=0`, Llama en Groq devuelve textos
+  distintos entre corridas del mismo documento. El veredicto y el porcentaje sí son estables,
+  porque se derivan aritméticamente del checklist.
+- **La compuerta de pertinencia** distingue bien disciplinas lejanas, pero un sílabo de
+  informática impartido a otra carrera puede colarse. Se decide por `Área de Conocimiento` y
+  `Resultado de Aprendizaje de la Carrera`, no por el tema.
+- **Una sola carrera.** El documento maestro está fijado a Ingeniería de Software en
+  `scripts/ingestar_maestro.py`. Generalizar exige editar ese archivo.
+- **Sin persistencia.** El único registro duradero son los PDFs con marca de tiempo. Los
+  dictámenes estructurados viven en Redis y caducan.

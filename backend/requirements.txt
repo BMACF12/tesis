@@ -1,28 +1,36 @@
-fastapi
-uvicorn
-python-multipart
-python-dotenv
-langchain
-langchain-core
-langchain-community
-langchain-google-genai
-langchain-chroma
-langchain-groq
-langchain-openai
-langchain-text-splitters
-chromadb
-PyPDF2
-pypdf
-numpy
-sqlalchemy
-unstructured
-unstructured-inference
-unstructured-pytesseract
-pillow
-pdfminer.six
-pi-heif
-pytesseract
-celery
-redis
-fpdf2
-pdf2image
+# Dependencias directas, con versión fija. Probado sobre Python 3.11.9.
+# Para replicar el entorno exacto (incluidas las transitivas):
+#   pip install -r requirements.lock.txt
+
+# --- API y cola de tareas ---
+fastapi==0.136.3
+uvicorn==0.48.0
+python-multipart==0.0.30
+python-dotenv==1.2.2
+celery==5.6.3
+redis==8.0.0
+
+# --- RAG: base vectorial y LLM ---
+langchain-core==1.4.0
+langchain-chroma==1.1.0
+langchain-google-genai==4.2.4
+langchain-groq==1.1.2
+chromadb==1.5.9
+pydantic==2.13.4
+
+# --- Extracción de PDF ---
+# pdfminer.six lee la capa de texto conservando las coordenadas, que es lo que
+# permite reconstruir el orden visual de la malla y de las tablas del sílabo.
+pdfminer.six==20260107
+
+# --- Reportes ---
+fpdf2==2.8.7
+
+# --- Respaldo OCR (opcional) ---
+# Sólo se activa si un PDF llega sin capa de texto (un escaneo). Ninguno de los
+# documentos institucionales probados lo necesita. Requiere además Poppler y
+# Tesseract en el PATH del sistema.
+unstructured==0.22.31
+# unstructured-inference==0.8.10
+# unstructured-pytesseract==0.3.15
+# pi-heif==0.22.0

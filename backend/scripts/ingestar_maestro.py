@@ -15,6 +15,22 @@ El futuro profesional en Ingeniería de Software utilizará una sólida formaci�
 Materias de la Malla Curricular Activas:
 El currículo incluye asignaturas de ciencias básicas como Cálculo Diferencial e Integral , Química , y Álgebra Lineal. En el núcleo de especialidad se encuentran materias como Fundamentos de Programación , Fundamentos de la Ingeniería de Software , Programación Orientada a Objetos , Estructura de Datos , Sistemas de Bases de Datos , y Sistemas Operativos.Para el desarrollo avanzado, la malla contempla Programación Web , Desarrollo Web Avanzado , Desarrollo de Aplicaciones Móviles , y Aplicaciones Distribuidas. En el eje de gestión y arquitectura, destacan Modelos de Procesos de Desarrollo de Software , Ingeniería de Requisitos de Software , Análisis y diseño de software , Arquitectura de Software , Construcción y Evolución del Software , Pruebas de Software , y Gestión de Proyectos de Software."""
 
+def cargar_asignaturas(base_dir: str) -> str:
+    """
+    La lista de asignaturas sale de la malla curricular vigente, no de un resumen escrito
+    a mano: el resumen omitía asignaturas reales (p. ej. Aplicaciones Basadas en el
+    Conocimiento) y el LLM no podía verificar la pertinencia de sus sílabos.
+    """
+    ruta = os.path.join(base_dir, "data", "asignaturas_malla.txt")
+    if not os.path.exists(ruta):
+        print(f"Aviso: no se encontró {ruta}. Se usa el listado embebido.")
+        return ""
+    with open(ruta, encoding="utf-8") as f:
+        asignaturas = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+    return "\n\nAsignaturas de la malla curricular vigente ({}):\n{}".format(
+        len(asignaturas), "; ".join(asignaturas))
+
+
 def main():
     print("Iniciando script utilitario de ingesta maestra...")
     
@@ -25,15 +41,16 @@ def main():
     os.makedirs(data_dir, exist_ok=True)
     
     file_path = os.path.join(data_dir, "maestro_software.txt")
+    texto = TEXTO_MAESTRO + cargar_asignaturas(base_dir)
     
     # 2. Creación del Archivo Físico
     with open(file_path, "w", encoding="utf-8") as f:
-        f.write(TEXTO_MAESTRO)
+        f.write(texto)
     print(f"[1/3] Archivo físico creado exitosamente en: {file_path}")
     
     # 3. Creación del Documento y Asignación de Metadatos Obligatorios
     doc = Document(
-        page_content=TEXTO_MAESTRO,
+        page_content=texto,
         metadata={
             "tipo": "documento_maestro",
             "carrera": "Ingeniería de Software",
@@ -51,9 +68,16 @@ def main():
         embedding_function=embeddings
     )
     
+    # Idempotente: sin esto, cada ejecución añade otro maestro y la base acumula copias.
+    previos = vector_db.get(where={"tipo": "documento_maestro"})
+    if previos["ids"]:
+        vector_db.delete(ids=previos["ids"])
+        print(f"[2.5/3] Eliminados {len(previos['ids'])} documento(s) maestro anteriores.")
+
     vector_db.add_documents([doc])
     print(f"[3/3] Inserción vectorial exitosa en la base de datos ChromaDB ({persist_directory}).")
-    print("🚀 Proceso de ingesta finalizado con éxito.")
+    # Sin emojis: la consola de Windows usa cp1252 y revienta con UnicodeEncodeError.
+    print("Proceso de ingesta finalizado con exito.")
 
 if __name__ == "__main__":
     main()

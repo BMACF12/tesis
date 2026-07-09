@@ -17,6 +17,7 @@ interface ResultadoAPI {
   justificacion: string;
   analisis_libre?: string;
   indicador_evaluado: string;
+  campos_vacios?: string[];
   checklist?: ElementoChecklist[];
 }
 
@@ -126,10 +127,13 @@ const TaskCard = ({ task }: { task: EnqueuedTask }) => {
         {/* Porcentaje Visual y Chevron (Accordion icon) */}
         {completado && task.resultado && theme && (
           <div className="shrink-0 flex items-center gap-5">
-            <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center transition-transform duration-300 ${expanded ? 'scale-110' : ''} ${theme.border} ${theme.bgInfo}`}>
-              <span className={`text-xl font-black ${theme.textInfo}`}>{task.resultado.porcentaje_estimado}%</span>
+            <div className="flex flex-col items-center gap-1">
+              <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center transition-transform duration-300 ${expanded ? 'scale-110' : ''} ${theme.border} ${theme.bgInfo}`}>
+                <span className={`text-xl font-black ${theme.textInfo}`}>{task.resultado.porcentaje_estimado}%</span>
+              </div>
+              <span className="text-[10px] uppercase tracking-wide text-slate-500">estructura</span>
             </div>
-            
+
             <motion.div
               animate={{ rotate: expanded ? 180 : 0 }}
               transition={{ duration: 0.3, type: "spring", stiffness: 200 }}
@@ -155,11 +159,32 @@ const TaskCard = ({ task }: { task: EnqueuedTask }) => {
           >
             <div className="mt-6 pt-5 border-t border-slate-700/50">
               <div className="space-y-5">
-                {task.resultado.analisis_libre && (
+                {task.resultado.campos_vacios && task.resultado.campos_vacios.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Análisis General</h4>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">
+                      Campos sin llenar ({task.resultado.campos_vacios.length})
+                    </h4>
+                    <div className="bg-slate-950/50 p-4 rounded-2xl border border-amber-500/30 shadow-inner">
+                      <div className="flex flex-wrap gap-2">
+                        {task.resultado.campos_vacios.map((campo, idx) => (
+                          <span key={idx} className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                            {campo}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="mt-3 text-xs text-slate-500 leading-relaxed">
+                        Observación para el responsable: no afecta al veredicto, que se calcula sobre los
+                        elementos fundamentales de la estructura. Conviene verificar esta lista a mano.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {(task.resultado.analisis_libre || task.resultado.justificacion) && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Diagnóstico</h4>
                     <p className="text-sm text-slate-300 bg-slate-950/50 p-5 rounded-2xl border border-slate-800/80 leading-relaxed shadow-inner">
-                      {task.resultado.analisis_libre}
+                      {task.resultado.analisis_libre || task.resultado.justificacion}
                     </p>
                   </div>
                 )}
@@ -191,9 +216,10 @@ const TaskCard = ({ task }: { task: EnqueuedTask }) => {
                   </div>
                 ) : (
                   <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Justificación del Auditor</h4>
-                    <p className="text-sm text-slate-300 bg-slate-950/50 p-5 rounded-2xl border border-slate-800/80 leading-relaxed shadow-inner">
-                      {task.resultado.justificacion}
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Sin checklist</h4>
+                    <p className="text-sm text-slate-400 bg-slate-950/50 p-5 rounded-2xl border border-slate-800/80 leading-relaxed shadow-inner">
+                      No se evaluaron los elementos fundamentales. Ocurre cuando el documento no usa la plantilla
+                      oficial del indicador, no pertenece a la carrera, o no pudo leerse.
                     </p>
                   </div>
                 )}
