@@ -1,0 +1,47 @@
+# Asignaturas de la malla curricular vigente de Ingeniería de Software.
+# Generado por scripts/extraer_asignaturas.py a partir de la malla oficial.
+# Fuente única para validar la pertinencia de un sílabo a la carrera.
+Análisis y Diseño de Software
+Aplicaciones Basadas en el Conocimiento
+Aplicaciones Distribuidas
+Arquitectura de Software
+Aseguramiento de la Calidad de Software
+Computación Digital
+Computación Gráfica
+Computación Paralela
+Construcción y Evolución del Software
+Cultura Ambiental
+Cálculo Diferencial e Integral
+Cálculo Vectorial
+Desarrollo Web Avanzado
+Desarrollo de Aplicaciones Móviles
+Desarrollo de Software Aplicado al Dominio de la Interculturalidad
+Desarrollo de Software Seguro
+Desarrollo de Video Juegos
+Ecuaciones Diferenciales Ordinarias
+Estadística
+Estructura de Datos
+Fundamentos de Programación
+Fundamentos de la Ingeniería de Software
+Física I
+Gestión de Proyectos de Software
+Gestión y Emprendimiento
+Ingenieria de Requisitos de Software
+Ingeniería de Usabilidad
+Ingeniería de la Seguridad del Software
+Investigación en la Ingeniería de Software
+Lectura y Escritura de Textos Académicos
+Liderazgo
+Metodología de la Investigación
+Modelos Discretos para Ingeniería
+Modelos de Procesos de Desarrollo de Software
+Métodos Numéricos
+Programación Orientada a Objetos
+Pruebas de Software
+Química I
+Realidad Nacional y Geopolítica
+Redes de Computadores
+Sistemas Avanzados de Bases de Datos
+Sistemas Operativos
+Sistemas de Bases de Datos
+Álgebra Lineal

@@ -1,50 +1,101 @@
+# Base de Oro: normativa CACES 2024 instrumentada.
+#
+# Cada bloque tiene dos partes:
+#   - Cabecera de máquina (ESTADO, MARCADORES, CAMPOS): la lee `crear_base_oro.py` y la
+#     guarda como metadatos. NO se envía al LLM. Sirve para comprobar de forma
+#     determinista la plantilla y qué campos están sin llenar.
+#   - Criterio (ESTÁNDAR, ELEMENTOS FUNDAMENTALES): es lo único que ve el LLM.
+#
+# MARCADORES: separados por ';' son todos obligatorios; separados por '|' son alternativos.
+# CAMPOS: etiquetas que deben tener contenido. Se localizan por coordenadas en el PDF.
+#   Un campo cuyo valor sea "No aplica", "NA" o "N/A" está lleno: es una respuesta.
+
 === INDICADOR 1: Perfil de egreso ===
 DIMENSIÓN: Currículo
+ESTADO: SEMANTICO
+MARCADORES: PERFIL DE EGRESO|PERFIL EGRESO|PERFIL PROFESIONAL
+CAMPOS:
 ESTÁNDAR: El perfil de egreso establece de manera clara y específica los resultados de aprendizaje que el estudiante alcanzará al término de su proceso formativo, en concordancia con el Modelo educativo.
 ELEMENTOS FUNDAMENTALES:
-1. Integridad estructural y coherencia semántica
-2. Declaración explícita de los resultados de aprendizaje
-3. Contextualización de los dominios de la profesión
-4. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [SEMÁNTICO] Declara explícitamente los resultados de aprendizaje que alcanzará el estudiante al término de su formación.
+2. [SEMÁNTICO] Contextualiza los dominios teóricos, metodológicos y técnico-pedagógicos de la profesión.
+3. [SEMÁNTICO] Los saberes teóricos y prácticos declarados son verificables y están redactados de forma observable.
+4. [SEMÁNTICO] Evidencia la participación de actores externos (empleadores, graduados, organizaciones profesionales) en su elaboración.
+5. [SEMÁNTICO] Declara mecanismos de seguimiento y evaluación para la mejora continua del perfil.
+FUENTES DE INFORMACIÓN: Proyecto curricular de la carrera. Macro currículo vigente.
 
 === INDICADOR 2: Proyecto curricular ===
 DIMENSIÓN: Currículo
-ESTÁNDAR: El proyecto o diseño curricular es coherente con el modelo educativo y misión institucional, describiendo metodologías, ambientes y recursos pedagógicos.
+ESTADO: SEMANTICO
+MARCADORES: PROYECTO CURRICULAR|DISEÑO CURRICULAR|MACRO CURRÍCULO|MODELO EDUCATIVO
+CAMPOS:
+ESTÁNDAR: El proyecto o diseño curricular es coherente con el modelo educativo y la misión institucional, y describe metodologías, ambientes y recursos pedagógicos.
 ELEMENTOS FUNDAMENTALES:
-1. Integridad estructural y coherencia semántica
-2. Coherencia institucional y alineación con el perfil de egreso
-3. Especificación de requisitos, evaluación y recursos pedagógicos
-4. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [SEMÁNTICO] Es coherente con el modelo educativo, la misión institucional y los resultados de aprendizaje del perfil de egreso.
+2. [SEMÁNTICO] Describe la pertinencia de la carrera frente a problemáticas globales, nacionales y a la demanda ocupacional.
+3. [SEMÁNTICO] Especifica los requisitos de ingreso y egreso y los mecanismos de evaluación del estudiante.
+4. [SEMÁNTICO] Describe los medios, ambientes y recursos pedagógicos que soportan el proceso formativo.
+5. [SEMÁNTICO] Declara políticas de actualización, seguimiento y mejora continua del currículo.
+FUENTES DE INFORMACIÓN: Proyecto curricular de la carrera vigente. Modelo educativo institucional.
 
 === INDICADOR 3: Malla curricular ===
 DIMENSIÓN: Currículo
-ESTÁNDAR: Las asignaturas en la malla curricular son coherentes con los resultados de aprendizaje definidos en el perfil de egreso.
+ESTADO: INSTRUMENTADO
+MARCADORES: MALLA CURRICULAR
+CAMPOS:
+ESTÁNDAR: Las asignaturas de la malla curricular son coherentes con los resultados de aprendizaje del perfil de egreso, y la malla declara de forma completa sus niveles, asignaturas, prerrequisitos y créditos.
+NOTA DE LECTURA: El documento se te entrega ya reconstruido a partir de las coordenadas del PDF, con una línea por asignatura en el formato "CODIGO | NOMBRE | PRE: prerrequisito | HPAO: horas | CR: créditos". Sólo la palabra literal VACIO indica un campo sin llenar. Las etiquetas de nivel llegan sin las letras "i" ("QuntoPAO" es "Quinto PAO"): reconócelas igualmente. Si ves "[CÓDIGO MALFORMADO]", el prerrequisito existe pero está mal escrito: repórtalo en analisis_libre, no como incumplimiento.
 ELEMENTOS FUNDAMENTALES:
-1. Identificación de semestres o niveles.
-2. Incluye distribución de asignaturas, identifica prerrequisitos
-3. Identifica prerrequisitos y correquisitos, y número de créditos.
-4. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [ESTRUCTURAL] Identificación institucional y de la carrera: aparecen el nombre de la universidad y el nombre literal de la carrera. Cítalo.
+2. [ESTRUCTURAL] Identificación de niveles: aparecen los ocho períodos académicos (Primer a Octavo PAO) y las tres unidades de organización curricular (Básica, Profesional, Integración Curricular). Cumple sólo si están los ocho PAO.
+3. [ESTRUCTURAL] Distribución de asignaturas: cada asignatura tiene código y nombre. Cumple si ninguna línea trae VACIO en el nombre. Enumera al menos diez asignaturas.
+4. [ESTRUCTURAL] Prerrequisitos y correquisitos: toda asignatura declara su prerrequisito, o bien "NIVELACION" o "N/A", que significan que no lo tiene. Cumple si ninguna línea trae VACIO en PRE.
+5. [ESTRUCTURAL] Créditos y carga horaria: toda asignatura declara HPAO y CR, y se cumple HPAO = 48 × CR. Reporta los totales que encuentres. La suma de las asignaturas no cuadra con el total declarado porque la integración curricular, las prácticas preprofesionales y el servicio a la comunidad no llevan código: NO lo reportes como incumplimiento.
+FUENTES DE INFORMACIÓN: Malla curricular vigente aprobada.
 
 === INDICADOR 4: Syllabus ===
 DIMENSIÓN: Currículo
-ESTÁNDAR: Los syllabus son coherentes con la malla curricular y permiten alcanzar los resultados de aprendizaje. Describen contenidos, metodologías, bibliografía y evaluación.
+ESTADO: INSTRUMENTADO
+MARCADORES: PROGRAMA DE ASIGNATURA - SÍLABO; SGC.DI.321
+CAMPOS: Modalidad; Departamento; Área de Conocimiento; Nombre Asignatura; Período Académico; Código; NRC; Nivel; Docente; Sesiones Semanales; carga horaria: DOCENCIA; carga horaria: PRACTICAS DE APLICACIÓN Y EXPERIMENTACIÓN; carga horaria: APRENDIZAJE AUTÓNOMO; Descripción de la Asignatura; Contribución de la Asignatura; Resultado de Aprendizaje de la Carrera; Objetivo de la Asignatura; Resultado de Aprendizaje de la Asignatura; Proyecto Integrador; Perfil sugerido del docente
+ESTÁNDAR: Los syllabus son coherentes con la malla curricular y permiten alcanzar los resultados de aprendizaje. Describen contenidos, metodologías, bibliografía y evaluación, con todos sus campos desarrollados.
+NOTA DE NUMERACIÓN: La plantilla oficial NO tiene sección 5: su numeración salta de "4." a "6.", y el encabezado de la sección 4 aparece truncado ("...Y TÉCNICA DE"). No uses el número de sección para localizar un elemento y no reportes la ausencia de la sección 5 como incumplimiento: ancla cada elemento al texto literal indicado en ANCLA. El encabezado "SISTEMA DE CONTENIDOS Y RESULTADOS DEL APRENDIZAJE" se repite por continuación de página: es una sola sección.
 ELEMENTOS FUNDAMENTALES:
-1. DATOS GENERALES.  
-2. SISTEMA DE CONTENIDOS Y RESULTADOS DEL APRENDIZAJE.  
-3. PROYECCIÓN METODOLÓGICA Y ORGANIZATIVA PARA EL DESARROLLO DE LA ASIGNATURA.  
-4. RESULTADOS DEL APRENDIZAJE, CONTRIBUCIÓN AL PERFIL DEL EGRESO.  
-5. TÉCNICAS Y PONDERACION DE LA EVALUACIÓN.  
-6. BIBLIOGRAFÍA BÁSICA/TEXTO GUÍA DE LA ASIGNATURA.  
-7. BIBLIOGRAFÍA COMPLEMENTARIA.  
-8. LECTURAS PRINCIPALES.  
-9. ACUERDOS.
-10. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [ESTRUCTURAL] ANCLA "DATOS GENERALES": existe la sección.
+2. [ESTRUCTURAL] ANCLA "SISTEMA DE CONTENIDOS Y RESULTADOS DEL APRENDIZAJE": declara unidades numeradas con contenidos, horas y actividades de aprendizaje.
+3. [ESTRUCTURAL] ANCLA "PROYECCIÓN METODOLÓGICA Y ORGANIZATIVA": declara métodos de enseñanza-aprendizaje y empleo de TIC.
+4. [SEMÁNTICO] ANCLA "CONTRIBUCIÓN AL PERFIL DEL EGRESO": declara resultados de aprendizaje por unidad curricular con su nivel de logro y actividades integradoras, coherentes con la asignatura.
+5. [ESTRUCTURAL] ANCLA "TÉCNICAS Y PONDERACION DE LA EVALUACIÓN": existe la tabla de técnicas con su ponderación por parcial y los totales.
+6. [ESTRUCTURAL] ANCLA "BIBLIOGRAFÍA BÁSICA": lista al menos una obra con título y autor.
+7. [ESTRUCTURAL] ANCLA "BIBLIOGRAFÍA COMPLEMENTARIA": lista al menos una obra con título y autor.
+8. [ESTRUCTURAL] ANCLA "LECTURAS PRINCIPALES": lista al menos una lectura con tema y fuente.
+9. [ESTRUCTURAL] ANCLA "ACUERDOS": constan los acuerdos del docente y de los estudiantes, y "FIRMAS DE LEGALIZACIÓN" con nombres y cargos.
+FUENTES DE INFORMACIÓN: Sílabo firmado y legalizado de la asignatura.
 
 === INDICADOR 6: Escenarios de prácticas formativas ===
 DIMENSIÓN: Currículo
-ESTÁNDAR: Se planifica y desarrolla actividades prácticas en ambientes o escenarios específicos y coherentes con el currículo.
+ESTADO: INSTRUMENTADO
+MARCADORES: GUIA DE USO DE LABORATORIO; A. INFORMACIÓN DE LA GUÍA
+CAMPOS: FECHA; DEPARTAMENTO; CARRERA; ASIGNATURA; PERIODO; NIVEL; DOCENTE; NRC; PRÁCTICA No; TEMA DE LA PRÁCTICA; NUMERO DE HORAS; INTRODUCCIÓN; OBJETIVOS; EQUIPOS; MATERIALES E INSUMOS; REACTIVOS; MUESTRA / OTROS; PRECAUCIONES/ INSTRUCCIONES; ACTIVIDADES POR DESARROLLAR; RESULTADOS OBTENIDOS; CONCLUSIONES; RECOMENDACIONES
+ESTÁNDAR: Se planifica y desarrolla actividades prácticas en escenarios coherentes con el currículo, documentadas en guías de laboratorio completas, controladas y aprobadas.
 ELEMENTOS FUNDAMENTALES:
-A. INFORMACIÓN DE LA GUÍA
-B. CONTROL DE CAMBIOS
-C. APROBACIÓN
-D. INTEGRIDAD DEL DOCUMENTO: El documento NO presenta títulos o subtítulos sin contenido, todos los campos están completamente desarrollados.
+1. [ESTRUCTURAL] ANCLA "A. INFORMACIÓN DE LA GUÍA": existe la sección con sus campos de identificación.
+2. [SEMÁNTICO] Planificación pedagógica: INTRODUCCIÓN, OBJETIVOS, ACTIVIDADES POR DESARROLLAR y RESULTADOS OBTENIDOS son coherentes entre sí; las actividades conducen a los resultados declarados.
+3. [ESTRUCTURAL] Recursos de la práctica: constan EQUIPOS, MATERIALES E INSUMOS, REACTIVOS, MUESTRA / OTROS y PRECAUCIONES/ INSTRUCCIONES.
+4. [ESTRUCTURAL] ANCLA "B. CONTROL DE CAMBIOS": existe al menos una fila con Fecha, Versión, Unidad/Nombre y Detalle del cambio.
+5. [ESTRUCTURAL] ANCLA "C. APROBACIÓN": constan las tres filas "Elaborado por", "Revisado por" y "Aprobado por", cada una con nombre y cargo.
+FUENTES DE INFORMACIÓN: Guías de laboratorio de las asignaturas con componente experimental.
+
+=== REGLAS GENERALES DE EVALUACIÓN ===
+
+1. HECHOS VERIFICADOS: el bloque que recibes con ese título se ha comprobado sobre el PDF por coordenadas. Es cierto. No lo discutas, no lo contradigas y no vuelvas a juzgar lo que ya afirma.
+
+2. UN ÍTEM POR ELEMENTO: genera exactamente un ítem de checklist por cada elemento fundamental de la norma, en su mismo orden y numeración. No añadas elementos que la norma no enumere.
+
+3. ESTRUCTURAL frente a SEMÁNTICO: en un elemento [ESTRUCTURAL] la sección debe existir con su encabezado literal (ANCLA). En un elemento [SEMÁNTICO] evalúa si el propósito está presente, sin exigir las palabras exactas.
+
+4. JUSTIFICACIÓN = CITA: en cada ítem copia el fragmento literal del documento que respalda tu decisión. Si no puedes citarlo, el elemento no cumple.
+
+5. PROHIBICIÓN DE INFERENCIA: no supongas que algo está presente porque el documento "debería" tenerlo. Si no lo lees, no cumple.
+
+6. DIAGNÓSTICO: en analisis_libre escribe de 3 a 5 frases sobre ESTE documento. Nombra la asignatura o el título, di qué elementos fallaron y por qué, y qué debe corregir el responsable. No escribas frases genéricas como "cumple con la mayoría de los elementos".

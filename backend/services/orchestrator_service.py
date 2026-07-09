@@ -36,6 +36,8 @@ def generar_reporte_pdf(dictamen: dict, ruta_salida: str, nombre_original: str):
                 for sub_k, sub_v in item.items():
                     if isinstance(sub_v, str):
                         item[sub_k] = sanitizar_texto_pdf(sub_v)
+        elif isinstance(v, list):
+            dictamen[k] = [sanitizar_texto_pdf(x) if isinstance(x, str) else x for x in v]
                         
     nombre_original = sanitizar_texto_pdf(nombre_original)
     pdf = FPDF(orientation="P", unit="mm", format="A4")
@@ -73,29 +75,42 @@ def generar_reporte_pdf(dictamen: dict, ruta_salida: str, nombre_original: str):
     pdf.set_font("helvetica", size=11)
     pdf.cell(0, 8, f"{dictamen.get('porcentaje_estimado', 0)}%", new_x="LMARGIN", new_y="NEXT")
     
-    # Pertinencia a la Carrera
-    pertenece = dictamen.get("pertenece_software", True)
-    just_software = dictamen.get("justificacion_software", "No especificada.")
-    
+    # Pertinencia a la Carrera. Tres estados: sí, no, y no evaluada (plantilla inválida
+    # o error de lectura). Decir "No" cuando no se evaluó es afirmar algo que no consta.
+    pertenece = dictamen.get("pertenece_software")
+    just_software = dictamen.get("justificacion_software") or "No especificada."
+    etiqueta_pertinencia = {True: "Sí", False: "No"}.get(pertenece, "No evaluada")
+
     pdf.set_font("helvetica", style="B", size=11)
     pdf.cell(45, 8, "Pertinencia Carrera:", new_x="RIGHT")
     pdf.set_font("helvetica", size=11)
-    pdf.cell(0, 8, "Sí" if pertenece else "No", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, etiqueta_pertinencia, new_x="LMARGIN", new_y="NEXT")
     
     pdf.set_font("helvetica", style="B", size=11)
     pdf.cell(45, 8, "Justif. Pertinencia:", new_x="RIGHT")
     pdf.set_font("helvetica", size=11)
     pdf.multi_cell(0, 8, just_software, new_x="LMARGIN", new_y="NEXT")
     
-    if not pertenece:
+    if pertenece is False:
         pdf.ln(2)
         pdf.set_font("helvetica", style="B", size=11)
         pdf.set_text_color(255, 0, 0)
         pdf.multi_cell(0, 8, "ATENCIÓN: Este documento fue descartado de la auditoría principal por no pertenecer a la carrera de Ingeniería de Software.", align="C", new_x="LMARGIN", new_y="NEXT")
         pdf.set_text_color(0, 0, 0)
         
+    # Campos sin llenar: es lo que el responsable necesita saber para corregir.
+    vacios = dictamen.get("campos_vacios") or []
+    if vacios:
+        pdf.ln(4)
+        pdf.set_font("helvetica", style="B", size=11)
+        pdf.cell(0, 8, f"Campos sin llenar ({len(vacios)})", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("helvetica", size=10)
+        pdf.set_text_color(200, 0, 0)
+        pdf.multi_cell(0, 6, "; ".join(vacios), new_x="LMARGIN", new_y="NEXT")
+        pdf.set_text_color(0, 0, 0)
+
     pdf.ln(8)
-    
+
     # Sección de Análisis Libre
     analisis = dictamen.get("analisis_libre", dictamen.get("justificacion", ""))
     if analisis:
@@ -138,16 +153,35 @@ def generar_reporte_pdf(dictamen: dict, ruta_salida: str, nombre_original: str):
     # Guardar archivo
     pdf.output(ruta_salida)
 
-def obtener_carpeta_indicador(indicador: str) -> str:
-    ind_lower = indicador.lower()
-    if "perfil" in ind_lower: return "Indicador_1_Perfil_de_egreso"
-    if "malla" in ind_lower: return "Indicador_3_Malla_curricular"
-    if "syllabus" in ind_lower or "sílabo" in ind_lower or "silabo" in ind_lower: return "Indicador_4_Syllabus"
-    if "metodolog" in ind_lower: return "INDICADOR_5_Metodología_y_recursos_de_aprendizaje"
-    if "prácticas" in ind_lower or "practicas" in ind_lower or "escenario" in ind_lower: return "Indicador_6_Escenarios_de_practicas_formativas"
-    if "tecnolog" in ind_lower or "tac" in ind_lower.split(): return "INDICADOR_7_Tecnologías_para_el_aprendizaje_y_conocimiento_TAC"
-    if "evaluación" in ind_lower or "desempeño" in ind_lower: return "INDICADOR_10_Evaluación_integral_del_desempeño_del_personal_académico"
-    return sanitizar_nombre(indicador)
+# Sólo los cinco indicadores que existen en la Base de Oro. Los demás no se pueden evaluar
+# y no deben tener carpeta: antes, un documento de Proyecto curricular acababa en una
+# carpeta con nombre generado por el LLM.
+CARPETAS_POR_INDICADOR = {
+    1: "Indicador_1_Perfil_de_egreso",
+    2: "Indicador_2_Proyecto_curricular",
+    3: "Indicador_3_Malla_curricular",
+    4: "Indicador_4_Syllabus",
+    6: "Indicador_6_Escenarios_de_practicas_formativas",
+}
+
+
+def obtener_carpeta_indicador(indicador) -> str:
+    """`indicador` puede ser el número (fiable) o su nombre (respaldo)."""
+    if isinstance(indicador, int) and indicador in CARPETAS_POR_INDICADOR:
+        return CARPETAS_POR_INDICADOR[indicador]
+
+    texto = str(indicador)
+    encontrado = re.match(r"\s*Indicador\s+(\d+)", texto, re.IGNORECASE)
+    if encontrado and int(encontrado.group(1)) in CARPETAS_POR_INDICADOR:
+        return CARPETAS_POR_INDICADOR[int(encontrado.group(1))]
+
+    minusculas = texto.lower()
+    if "perfil" in minusculas: return CARPETAS_POR_INDICADOR[1]
+    if "proyecto curricular" in minusculas or "diseño curricular" in minusculas: return CARPETAS_POR_INDICADOR[2]
+    if "malla" in minusculas: return CARPETAS_POR_INDICADOR[3]
+    if "syllabus" in minusculas or "sílabo" in minusculas or "silabo" in minusculas: return CARPETAS_POR_INDICADOR[4]
+    if "práctica" in minusculas or "practica" in minusculas or "escenario" in minusculas: return CARPETAS_POR_INDICADOR[6]
+    return sanitizar_nombre(texto)
 
 def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_original: str) -> str:
     """
@@ -159,7 +193,7 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
     
     # Extraer datos del JSON de forma segura
     veredicto = resultado_llm.get("veredicto", "ERROR").upper()
-    indicador = resultado_llm.get("indicador_evaluado", "Indicador_Desconocido")
+    indicador = resultado_llm.get("indicador_numero") or resultado_llm.get("indicador_evaluado", "Indicador_Desconocido")
     
     # 1. Generar Timestamp para evitar sobreescrituras
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -172,24 +206,29 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
     nuevo_nombre_reporte = f"{nombre_base}_{timestamp}_Reporte.pdf"
     
     # 2. Lógica de Triage (Enrutamiento)
+    # El orden importa: un error de lectura no lleva veredicto de pertinencia fiable, así
+    # que se resuelve antes de mirar 'pertenece_software'.
     pertenece = resultado_llm.get("pertenece_software", True)
-    
-    if not pertenece:
-        # Si no pertenece a la carrera, se rechaza inmediatamente
+
+    if "ERROR_CUOTA" in veredicto:
+        # El documento no tiene defecto: se quedó sin cuota de API. Se aparta para volver
+        # a subirlo cuando el límite se recargue.
+        carpeta_destino = os.path.join(BASE_DIR, "98_Pendientes_Por_Cuota")
+        crear_reporte = False
+    elif "ERROR" in veredicto:
+        carpeta_destino = os.path.join(BASE_DIR, "99_Descarte_Errores")
+        crear_reporte = False
+    elif "PLANTILLA NO RECONOCIDA" in veredicto:
+        # No es la plantilla oficial: problema distinto de una plantilla mal llenada.
+        carpeta_destino = os.path.join(BASE_DIR, "12_Plantilla_No_Reconocida")
+        crear_reporte = True
+    elif not pertenece or "NO CUMPLE" in veredicto:
         carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
         crear_reporte = True
     else:
-        # Lógica de triage normal
-        if "ERROR" in veredicto:
-            carpeta_destino = os.path.join(BASE_DIR, "99_Descarte_Errores")
-            crear_reporte = False
-        elif "NO CUMPLE" in veredicto:
-            carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
-            crear_reporte = True
-        else: 
-            # "CUMPLE" o "CUMPLE PARCIALMENTE" van a la carpeta de su indicador oficial
-            carpeta_destino = os.path.join(BASE_DIR, obtener_carpeta_indicador(indicador))
-            crear_reporte = True
+        # "CUMPLE" o "CUMPLE PARCIALMENTE" van a la carpeta de su indicador oficial
+        carpeta_destino = os.path.join(BASE_DIR, obtener_carpeta_indicador(indicador))
+        crear_reporte = True
             
     os.makedirs(carpeta_destino, exist_ok=True)
     ruta_final_pdf = os.path.join(carpeta_destino, nuevo_nombre_pdf)
