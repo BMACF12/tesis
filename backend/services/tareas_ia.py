@@ -32,7 +32,7 @@ class ElementoChecklist(BaseModel):
     numero_elemento: int = Field(description="El número del elemento fundamental evaluado")
     descripcion: str = Field(description="El texto literal del elemento o requisito según el contexto de la norma")
     cumple: bool = Field(description="True si el documento cumple con el elemento, False si no")
-    justificacion: str = Field(description="Evidencia o motivo exacto extraído del documento evaluado")
+    justificacion: str = Field(description="Cita textual EXACTA copiada del documento que demuestra el cumplimiento. Si el campo está vacío, escribe 'TÍTULO VACÍO - SIN CONTENIDO'. NO inventes explicaciones.")
 
 class DictamenAuditoria(BaseModel):
     pertenece_software: bool = Field(description="True si pertenece a Ingeniería de Software, False en caso contrario")
@@ -68,6 +68,37 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
             if os.path.exists(ruta_pdf):
                 os.remove(ruta_pdf)
             raise ValueError(f"Documento ilegible o corrupto: {extr_err}")
+            
+        # 1.5 PRE-FILTRO DE PERTINENCIA (Ahorro de API Groq)
+        palabras_clave = [
+            "universidad", "instituto", "sílabo", "syllabus", "caces", 
+            "asignatura", "evaluación", "carrera", "educación", 
+            "estudiante", "aprendizaje", "perfil", "malla", "facultad",
+            "currículo", "proyecto", "profesional", "metodología", "recursos",
+            "portafolio", "prácticas", "laboratorio", "escenario", "tecnología",
+            "virtual", "afinidad", "posgrado", "titular", "nombramiento",
+            "concurso", "desempeño", "docente", "académico"
+        ]
+        texto_lower = texto_completo.lower()
+        coincidencias = sum(1 for palabra in palabras_clave if palabra in texto_lower)
+        
+        if coincidencias < 2:
+            print(f"-> [CELERY] RECHAZO AUTOMÁTICO: Documento no académico (solo {coincidencias} coincidencias).")
+            resultado_rechazo = {
+                "pertenece_software": False,
+                "justificacion_software": f"Rechazado automáticamente. El documento solo contiene {coincidencias} palabra(s) clave del ámbito académico/CACES, lo que indica que no es un documento pertinente.",
+                "indicador_evaluado": "Indicador_Desconocido",
+                "veredicto": "NO CUMPLE",
+                "porcentaje_estimado": 0,
+                "justificacion": "El documento no parece ser de naturaleza académica oficial (carece de vocabulario básico universitario).",
+                "analisis_libre": "RECHAZO AUTOMÁTICO DEL SISTEMA: Se abortó el análisis con Inteligencia Artificial para ahorrar recursos, ya que el documento no superó el filtro léxico de pertinencia.",
+                "checklist": [],
+                "nombre_original": nombre_original
+            }
+            ruta_final = enrutar_documento(resultado_rechazo, ruta_pdf, nombre_original)
+            if os.path.exists(ruta_pdf):
+                os.remove(ruta_pdf)
+            return resultado_rechazo
         
         # 2. FASE DE RECUPERACIÓN (ChromaDB)
         print("-> [CELERY] Recuperando indicador de ChromaDB...")
@@ -80,7 +111,7 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
             ("PROYECTO CURRICULAR", "DISEÑO CURRICULAR", "MACRO CURRÍCULO"): "Estándar y elementos fundamentales del indicador de Proyecto curricular",
             ("PERFIL DE EGRESO", "PERFIL PROFESIONAL"): "Estándar y elementos fundamentales del indicador de Perfil de egreso",
             ("METODOLOGÍA Y RECURSOS", "PORTAFOLIO DOCENTE"): "Estándar y elementos fundamentales del indicador de Metodología y recursos de aprendizaje",
-            ("PRÁCTICAS FORMATIVAS", "ESCENARIOS DE APRENDIZAJE", "LABORATORIOS"): "Estándar y elementos fundamentales del indicador de Escenarios de prácticas formativas",
+            ("PRÁCTICAS FORMATIVAS", "ESCENARIOS DE APRENDIZAJE", "LABORATORIOS", "LABORATORIO", "GUIA DE USO DE LABORATORIO", "GUÍA DE LABORATORIO"): "Estándar y elementos fundamentales del indicador de Escenarios de prácticas formativas",
             ("TECNOLOGÍAS PARA EL APRENDIZAJE", "TAC", "ENTORNOS VIRTUALES"): "Estándar y elementos fundamentales del indicador de Tecnologías para el aprendizaje y conocimiento",
             ("AFINIDAD DEL PERSONAL", "FORMACIÓN DE POSGRADO"): "Estándar y elementos fundamentales del indicador de Afinidad del personal académico",
             ("TITULAR PERMANENTE", "NOMBRAMIENTO DEFINITIVO", "CONCURSO DE MERECIMIENTOS"): "Estándar y elementos fundamentales del indicador de Personal académico titular permanente",
@@ -130,18 +161,15 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
             temperature=0
         ).with_structured_output(DictamenAuditoria)
         
-        template_auditor = """Eres un auditor académico riguroso del CACES (Ecuador).
-Evalúa el documento proporcionado. Primero, compara su contenido (títulos, materias, objetivos) con el Perfil de Egreso y la Malla Curricular de Ingeniería de Software presentes en el contexto maestro. Si el documento tiene relación directa o las materias coinciden con la malla de Software, marca 'pertenece_software' como True. Si es un sílabo o documento de otra disciplina ajena, marca False y explica el motivo en 'justificacion_software'. Luego, procede a evaluar el checklist del CACES.
+        template_auditor = """Eres un auditor académico extremadamente riguroso del CACES (Ecuador).
+Evalúa el documento proporcionado contra el contexto normativo de forma literal y estricta.
 
-Lee el documento proporcionado y el contexto combinado. Identifica el indicador correspondiente y evalúa el documento contra CADA UNO de los 'Elementos Fundamentales' o 'Requisitos' enumerados en el contexto normativo. Debes generar un ítem en el checklist por cada elemento, dictaminando si cumple o no, acompañado de su justificación fáctica.
-
-REGLAS DE EVALUACIÓN (CRITERIO EXPERTO):
-1. Equivalencia Semántica: El documento NO necesita usar las palabras exactas de la normativa. Evalúa si el 'propósito' o la 'esencia' del elemento fundamental está presente.
-2. Flexibilidad Menor: Si el documento tiene los componentes principales pero omite un detalle técnico minúsculo, no lo rechaces por completo; hazle una observación.
-3. Clasificación del Veredicto:
-   - "CUMPLE": Tiene todos los elementos fundamentales (o sus equivalentes semánticos).
-   - "CUMPLE PARCIALMENTE": Faltan elementos secundarios o hay ambigüedad, pero el núcleo del documento es válido. Requiere correcciones.
-   - "NO CUMPLE": Faltan elementos críticos e indispensables.
+REGLAS DE EVALUACIÓN (CRITERIO EXPERTO Y ANTI-ALUCINACIÓN):
+1. OBLIGATORIEDAD DE EVALUAR TODO: Cuenta cuántos 'Elementos Fundamentales' hay en el contexto normativo. DEBES generar exactamente esa misma cantidad de ítems en el checklist. ¡NO OMITAS NINGÚN ELEMENTO! Si hay 9 elementos, debe haber 9 ítems evaluados.
+2. CERO ALUCINACIONES: NO inventes ni agregues elementos que no existan explícitamente en el contexto normativo. 
+3. TÍTULOS VACÍOS = INCUMPLIMIENTO: ADVERTENCIA CRÍTICA. Las plantillas suelen tener títulos pero estar vacías por dentro. Si encuentras un título (ej. "Datos Generales" o "Resultados de Aprendizaje") pero debajo NO HAY NINGÚN PÁRRAFO, TABLA NI TEXTO DESARROLLADO (solo espacios en blanco), marca 'cumple: False' inmediatamente.
+4. JUSTIFICACIÓN = CITA TEXTUAL: El campo 'justificacion' NO es para que des tu opinión. Úsalo ÚNICAMENTE para pegar la cita textual exacta del documento que demuestra que se cumplió el elemento. Si estaba vacío o no existe, escribe 'TÍTULO VACÍO - SIN CONTENIDO'.
+5. PERTENENCIA (FILTRO ESTRICTO): Compara obligatoriamente el contenido del documento (títulos, materias, objetivos) con el Perfil de Egreso y la Malla Curricular de Ingeniería de Software presentes en el DOCUMENTO MAESTRO. Si el documento NO tiene relación directa o es de otra disciplina, marca 'pertenece_software' como False y explica en 'justificacion_software'.
 
 CONTEXTO COMBINADO (NORMATIVA Y MAESTRO): {contexto} 
 
@@ -165,8 +193,26 @@ DOCUMENTO A EVALUAR: {documento}"""
         # 4.1 Cálculo matemático estricto del porcentaje y veredicto basado en el checklist
         checklist = resultado_json.get("checklist", [])
         total_elementos = len(checklist)
+        pertenece = resultado_json.get("pertenece_software", True)
         
-        if total_elementos > 0:
+        falla_integridad = any(
+            "INTEGRIDAD" in item.get("descripcion", "").upper() and item.get("cumple") is False 
+            for item in checklist
+        )
+        
+        if not pertenece:
+            # Castigo absoluto si no es de Software
+            porcentaje_calculado = 0
+            veredicto_calculado = "NO CUMPLE"
+            for item in checklist:
+                item["cumple"] = False
+                item["justificacion"] = "RECHAZADO AUTOMÁTICAMENTE: El documento no tiene pertinencia con la carrera de Ingeniería de Software ni con su perfil de egreso."
+        elif falla_integridad:
+            # Castigo absoluto por tener campos vacíos
+            porcentaje_calculado = 0
+            veredicto_calculado = "NO CUMPLE"
+            resultado_json["analisis_libre"] = "RECHAZADO AUTOMÁTICAMENTE POR FALTA DE INTEGRIDAD: " + resultado_json.get("analisis_libre", "")
+        elif total_elementos > 0:
             elementos_cumplidos = sum(1 for item in checklist if item.get("cumple") is True)
             porcentaje_calculado = round((elementos_cumplidos / total_elementos) * 100)
             
@@ -177,10 +223,13 @@ DOCUMENTO A EVALUAR: {documento}"""
                 veredicto_calculado = "CUMPLE PARCIALMENTE"
             else:
                 veredicto_calculado = "NO CUMPLE"
-                
-            # Sobrescribimos lo que haya devuelto el LLM para garantizar exactitud matemática
-            resultado_json["porcentaje_estimado"] = porcentaje_calculado
-            resultado_json["veredicto"] = veredicto_calculado
+        else:
+            porcentaje_calculado = 0
+            veredicto_calculado = "ERROR"
+            
+        # Sobrescribimos lo que haya devuelto el LLM para garantizar exactitud matemática y castigos
+        resultado_json["porcentaje_estimado"] = porcentaje_calculado
+        resultado_json["veredicto"] = veredicto_calculado
             
         # 5. Ejecutar orquestador físico
         enrutar_documento(resultado_json, ruta_pdf, nombre_original)

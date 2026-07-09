@@ -29,7 +29,7 @@ def main():
     # 2. Creación del Archivo Físico
     with open(file_path, "w", encoding="utf-8") as f:
         f.write(TEXTO_MAESTRO)
-    print(f"✅ [1/3] Archivo físico creado exitosamente en: {file_path}")
+    print(f"[1/3] Archivo físico creado exitosamente en: {file_path}")
     
     # 3. Creación del Documento y Asignación de Metadatos Obligatorios
     doc = Document(
@@ -40,7 +40,7 @@ def main():
             "source": file_path
         }
     )
-    print("✅ [2/3] Objeto Document creado con metadatos requeridos.")
+    print("[2/3] Objeto Document creado con metadatos requeridos.")
     
     # 4. Configuración e Inserción en ChromaDB
     persist_directory = os.path.join(base_dir, "chroma_data")
@@ -52,7 +52,7 @@ def main():
     )
     
     vector_db.add_documents([doc])
-    print(f"✅ [3/3] Inserción vectorial exitosa en la base de datos ChromaDB ({persist_directory}).")
+    print(f"[3/3] Inserción vectorial exitosa en la base de datos ChromaDB ({persist_directory}).")
     print("🚀 Proceso de ingesta finalizado con éxito.")
 
 if __name__ == "__main__":

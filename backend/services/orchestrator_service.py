@@ -19,6 +19,25 @@ def generar_reporte_pdf(dictamen: dict, ruta_salida: str, nombre_original: str):
     """
     Genera un reporte PDF profesional utilizando fpdf2 basado en el dictamen estructurado de la IA.
     """
+    # Función interna para limpiar caracteres unicode que rompen la fuente helvetica
+    def sanitizar_texto_pdf(texto):
+        if not isinstance(texto, str): return texto
+        reemplazos = {'–': '-', '—': '-', '“': '"', '”': '"', '‘': "'", '’': "'", '…': '...', '\u200b': '', '•': '-'}
+        for malo, bueno in reemplazos.items(): 
+            texto = texto.replace(malo, bueno)
+        return texto.encode('latin-1', errors='ignore').decode('latin-1')
+
+    # Limpiar el dictamen para evitar FPDFUnicodeEncodingException
+    for k, v in dictamen.items():
+        if isinstance(v, str):
+            dictamen[k] = sanitizar_texto_pdf(v)
+        elif isinstance(v, list) and k == "checklist":
+            for item in v:
+                for sub_k, sub_v in item.items():
+                    if isinstance(sub_v, str):
+                        item[sub_k] = sanitizar_texto_pdf(sub_v)
+                        
+    nombre_original = sanitizar_texto_pdf(nombre_original)
     pdf = FPDF(orientation="P", unit="mm", format="A4")
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -125,6 +144,7 @@ def obtener_carpeta_indicador(indicador: str) -> str:
     if "malla" in ind_lower: return "Indicador_3_Malla_curricular"
     if "syllabus" in ind_lower or "sílabo" in ind_lower or "silabo" in ind_lower: return "Indicador_4_Syllabus"
     if "metodolog" in ind_lower: return "INDICADOR_5_Metodología_y_recursos_de_aprendizaje"
+    if "prácticas" in ind_lower or "practicas" in ind_lower or "escenario" in ind_lower: return "Indicador_6_Escenarios_de_practicas_formativas"
     if "tecnolog" in ind_lower or "tac" in ind_lower.split(): return "INDICADOR_7_Tecnologías_para_el_aprendizaje_y_conocimiento_TAC"
     if "evaluación" in ind_lower or "desempeño" in ind_lower: return "INDICADOR_10_Evaluación_integral_del_desempeño_del_personal_académico"
     return sanitizar_nombre(indicador)
@@ -144,6 +164,10 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
     # 1. Generar Timestamp para evitar sobreescrituras
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     nombre_base, ext = os.path.splitext(nombre_original)
+    
+    # Recortar el nombre base a máximo 50 caracteres para evitar el error de MAX_PATH de Windows (260 chars)
+    nombre_base = nombre_base[:50]
+    
     nuevo_nombre_pdf = f"{nombre_base}_{timestamp}{ext}"
     nuevo_nombre_reporte = f"{nombre_base}_{timestamp}_Reporte.pdf"
     

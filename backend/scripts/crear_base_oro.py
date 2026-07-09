@@ -21,22 +21,25 @@ def main():
         return
 
     try:
-        # 1. Cargar el texto del documento
-        loader = TextLoader(file_path, encoding="utf-8")
-        documents = loader.load()
+        # 1. Cargar el texto del documento de forma manual
+        with open(file_path, "r", encoding="utf-8") as f:
+            texto_completo = f.read()
         print("Documento cargado.")
 
-        # 2. Configurar el text splitter
-        # Dividimos el texto en chunks; se configuran tamaños pequeños por la naturaleza de los indicadores cortos
-        print("Dividiendo el texto en fragmentos (chunks)...")
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1200,      # Aumentamos el tamaño para que quepa un indicador entero
-            chunk_overlap=200,    # Solapamiento para no perder contexto
-            separators=["=== INDICADOR", "\n\n", "\n", " ", ""] # Separadores estratégicos
-        )
+        # 2. Configurar el particionado ESTRICTO (1 chunk = 1 Indicador)
+        print("Dividiendo el texto en fragmentos (1 chunk por indicador)...")
+        from langchain_core.documents import Document
         
-        chunks = text_splitter.split_documents(documents)
-        print(f"Se generaron {len(chunks)} fragmentos.")
+        partes = texto_completo.split("=== INDICADOR")
+        chunks = []
+        for parte in partes:
+            parte_limpia = parte.strip()
+            if parte_limpia:
+                # Volver a poner el prefijo para que el LLM sepa qué indicador es
+                texto_chunk = "=== INDICADOR " + parte_limpia
+                chunks.append(Document(page_content=texto_chunk, metadata={"source": file_path}))
+                
+        print(f"Se generaron {len(chunks)} fragmentos estrictos.")
 
         # 3. Configurar el modelo de Embeddings de Google
         # Esto automáticamente buscará la variable GOOGLE_API_KEY en tu entorno (.env)
