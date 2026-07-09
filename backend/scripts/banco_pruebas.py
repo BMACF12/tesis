@@ -30,6 +30,9 @@ CASOS = [
     ("sílabo Software 21278", rf"{IND}\INDICADOR 4 Syllabus\Silabo_NRC-21278_*.pdf", 4, True, True),
     ("sílabo Software 21306", rf"{IND}\INDICADOR 4 Syllabus\Silabo_NCR-21306_*.pdf", 4, True, True),
     ("sílabo Contabilidad 22639", rf"{IND}\INDICADOR 4 Syllabus\Silabo_NRC-22639_*.pdf", 4, True, False),
+    # Rechazo correcto: "TEC Y SIS DE LA INFORMACION" no consta en la malla vigente, luego
+    # el sílabo no es evidencia de esta carrera aunque su nombre de fichero diga Software.
+    ("sílabo 22670 (fuera de malla)", rf"{IND}\INDICADOR 4 Syllabus\Silabo_NRC-22670_*.pdf", 4, True, False),
     # Limitación conocida: "APLICACIONES MOVILES" consta también en la malla de Software,
     # y el sílabo de la ESPE no declara ningún campo con la carrera. Indistinguible.
     ("sílabo Redes/Telecom 22745", rf"{IND}\INDICADOR 4 Syllabus\Silabo_NRC_22745_*.pdf", 4, True, True),
@@ -37,6 +40,9 @@ CASOS = [
     ("sílabo trampa (vacío)", rf"{IND}\INDICADOR 4 Syllabus\silabus_trampa_*.pdf", 4, True, None),
     ("no-sílabo (receta)", rf"{IND}\INDICADOR 4 Syllabus\sylabus-nosylabus.pdf", 3, False, None),
     ("malla Software", rf"{IND}\INDICADOR 3 Malla curricular\malla isoj*.pdf", 3, True, True),
+    # Misma malla exportada a un pliego 3,27 veces mayor. Las ventanas de la celda son
+    # proporcionales a la escala del diagrama, no absolutas.
+    ("malla Software (pliego grande)", rf"{IND}\INDICADOR 3 Malla curricular\malla_ingenierIa*.pdf", 3, True, True),
     ("malla Educación Inicial", rf"{IND}\INDICADOR 3 Malla curricular\MALLA-EDUCACION-INICIAL*.pdf", 3, True, False),
     ("guía 2.3 (completa)", rf"{GUI}\2.3 Guia Laboratorio*.pdf", 6, True, True),
     ("guía 3.3 (campos vacíos)", rf"{GUI}\3.3 Guia Laboratorio*.pdf", 6, True, True),

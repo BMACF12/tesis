@@ -188,10 +188,11 @@ en la raíz (`tesis/venv`), no en `tesis/backend/venv`.
 ## 10. Limitaciones conocidas
 
 - **El sílabo de la ESPE no declara la carrera.** La pertinencia se decide comparando la
-  asignatura contra la malla vigente. Acierta en 22 de 24 sílabos etiquetados. Falla en dos
-  casos comprensibles: una asignatura que no consta en la malla (`TEC Y SIS DE LA
-  INFORMACION`) y otra compartida con otra carrera (`APLICACIONES MOVILES`, que también se
-  imparte en Tec. Redes y Telecomunicaciones).
+  asignatura contra la malla vigente: si la asignatura no consta en la malla, el sílabo no
+  es evidencia de esta carrera. Acierta en 23 de 24 sílabos etiquetados. El único fallo es
+  `APLICACIONES MOVILES`, asignatura que existe a la vez en la malla de Software y en la de
+  Tecnologías de Redes y Telecomunicaciones: sin un campo que declare la carrera, los dos
+  sílabos son indistinguibles.
 - **El LLM no es determinista.** Aunque `temperature=0`, Llama en Groq devuelve textos
   distintos entre corridas del mismo documento. Por eso el veredicto, la pertinencia y los
   campos vacíos se calculan en código: sólo el checklist y el diagnóstico varían.

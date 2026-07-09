@@ -91,24 +91,34 @@ def _cajas(ruta_pdf: str):
     return cajas, rotadas
 
 
+# Altura típica de una línea de texto. Acota la tolerancia de agrupación para que una
+# celda combinada verticalmente no pueda absorber las filas que atraviesa.
+ALTURA_DE_LINEA = 20.0
+
+
 def _agrupar_filas(cajas: list) -> list:
     """
-    Agrupa las cajas en filas visuales por solapamiento vertical.
+    Agrupa las cajas en filas visuales comparando su centro vertical.
 
-    No sirve redondear la coordenada superior: en el formulario, la celda del valor es
-    más alta que la de su etiqueta y su borde superior queda por encima. En la guía de
-    laboratorio, "DEPARTAMENTO DE CIENCIAS DE LA COMPUTACION" empieza 9,6 puntos más
-    arriba que "DEPARTAMENTO:", y ordenar por ese borde separa el valor de su etiqueta.
-    Dos cajas comparten fila si sus franjas verticales se solapan al menos la mitad de
-    la más baja de las dos.
+    No sirve ordenar por el borde superior: en el formulario, la celda del valor es más
+    alta que la de su etiqueta y empieza por encima ("DEPARTAMENTO DE CIENCIAS DE LA
+    COMPUTACION" arranca 9,6 puntos más arriba que "DEPARTAMENTO:"). Tampoco sirve el
+    solapamiento simple: en la tabla de contribución al perfil de egreso hay celdas
+    combinadas de 54 puntos de alto que cruzan dos filas y se las tragarían enteras.
+
+    Dos cajas comparten fila si sus centros distan menos de media línea de texto. La
+    tolerancia se acota a `ALTURA_DE_LINEA` para que una celda alta no ensanche el
+    criterio en proporción a su propio tamaño.
     """
     filas = []
     for caja in sorted(cajas, key=lambda c: (c["pagina"], -c["y"], c["x"])):
         if filas:
-            ancla = filas[-1][0]  # la caja más alta de la fila abierta
-            solape = min(ancla["y"], caja["y"]) - max(ancla["y0"], caja["y0"])
-            umbral = 0.5 * min(caja["y"] - caja["y0"], ancla["y"] - ancla["y0"])
-            if ancla["pagina"] == caja["pagina"] and solape >= umbral:
+            ancla = filas[-1][0]
+            centro_ancla = (ancla["y"] + ancla["y0"]) / 2
+            centro_caja = (caja["y"] + caja["y0"]) / 2
+            alto = max(ancla["y"] - ancla["y0"], caja["y"] - caja["y0"])
+            tolerancia = 0.5 * min(alto, ALTURA_DE_LINEA)
+            if ancla["pagina"] == caja["pagina"] and abs(centro_caja - centro_ancla) <= tolerancia:
                 filas[-1].append(caja)
                 continue
         filas.append([caja])
@@ -262,17 +272,44 @@ def es_malla(cajas: list) -> bool:
     return tiene_hpao and sum(1 for c in cajas if COD_ASIGNATURA.match(c["t"])) >= 10
 
 
+# Separación horizontal entre columnas de asignatura en la malla de referencia. Las mallas
+# se exportan a tamaños de papel distintos: la misma malla puede venir a escala 1 o 3,3.
+PASO_ENTRE_COLUMNAS = 98.0
+
+
+def escala_de_malla(cajas: list) -> float:
+    """
+    Deduce la escala del diagrama a partir de la separación entre columnas de `HPAO`.
+
+    Las ventanas de búsqueda de la celda (nombre, prerrequisito, horas) estaban calibradas
+    sobre una única malla. Otra malla igual de válida, exportada a un pliego mayor, las
+    dejaba a todas fuera de rango y el sistema reconstruía cero asignaturas.
+    """
+    columnas = []
+    for x in sorted(round(c["x"]) for c in cajas if c["t"] == "HPAO"):
+        if not columnas or x - columnas[-1] > 5:
+            columnas.append(x)
+    separaciones = [b - a for a, b in zip(columnas, columnas[1:])]
+    if not separaciones:
+        return 1.0
+    from statistics import median
+    return max(0.5, min(8.0, median(separaciones) / PASO_ENTRE_COLUMNAS))
+
+
 def filas_de_malla(cajas: list) -> list:
     """
     Una fila por asignatura. Su ancla es el código; el nombre va a la derecha, el
     prerrequisito debajo, y las horas y créditos en la subcolumna de la etiqueta HPAO.
+    Todas las distancias se expresan en múltiplos de la escala del diagrama.
     """
+    e = escala_de_malla(cajas)
     etiquetas_hpao = [c for c in cajas if c["t"] == "HPAO"]
     filas = []
     for ancla in sorted((c for c in cajas if COD_ASIGNATURA.match(c["t"])),
                         key=lambda c: (-c["y"], c["x"])):
         hpao = next((h for h in etiquetas_hpao
-                     if 58 <= h["x"] - ancla["x"] <= 94 and -34 <= h["y"] - ancla["y"] <= -16), None)
+                     if 58 * e <= h["x"] - ancla["x"] <= 94 * e
+                     and -34 * e <= h["y"] - ancla["y"] <= -16 * e), None)
         if hpao is None:
             continue  # es un código usado como prerrequisito, no una celda de asignatura
 
@@ -280,12 +317,14 @@ def filas_de_malla(cajas: list) -> list:
         dy = lambda c: c["y"] - ancla["y"]
 
         nombre = " ".join(c["t"] for c in sorted(cajas, key=dx)
-                          if 18 <= dx(c) <= 72 and abs(dy(c)) <= 3 and not COD_ASIGNATURA.match(c["t"]))
+                          if 18 * e <= dx(c) <= 72 * e and abs(dy(c)) <= 3 * e
+                          and not COD_ASIGNATURA.match(c["t"]))
 
         prerrequisitos = []
         for caja in sorted(cajas, key=dx):
             valor = _normalizar_codigo(caja["t"])
-            if not (-8 <= dx(caja) <= 58 and -26 <= dy(caja) <= -4 and _es_prerrequisito(valor)):
+            if not (-8 * e <= dx(caja) <= 58 * e and -26 * e <= dy(caja) <= -4 * e
+                    and _es_prerrequisito(valor)):
                 continue
             # Un código que no respeta el patrón de nueve caracteres es un error de tipeo
             # de la malla, no un campo vacío. Se señala sin invalidar la fila.
@@ -294,8 +333,8 @@ def filas_de_malla(cajas: list) -> list:
                 for p in valor.split(" O ")))
 
         numeros = [c["t"] for c in sorted(cajas, key=lambda c: -c["y"])
-                   if abs(c["x"] - hpao["x"]) <= 14 and hpao["y"] - 24 < c["y"] < hpao["y"]
-                   and c["t"].isdigit()]
+                   if abs(c["x"] - hpao["x"]) <= 14 * e
+                   and hpao["y"] - 24 * e < c["y"] < hpao["y"] and c["t"].isdigit()]
 
         filas.append({
             "codigo": ancla["t"],
@@ -385,8 +424,15 @@ def extraer_documento(ruta_pdf: str) -> dict:
         return {"texto": _ocr(ruta_pdf), "cajas": [], "ocr": True, "es_malla": False}
 
     if es_malla(cajas):
-        print("-> [EXTRACCIÓN] Malla detectada. Reconstruyendo por coordenadas.")
-        return {"texto": _reconstruir_malla(cajas, rotadas), "cajas": cajas,
-                "ocr": False, "es_malla": True}
+        filas = filas_de_malla(cajas)
+        if filas:
+            print(f"-> [EXTRACCIÓN] Malla detectada. Reconstruidas {len(filas)} asignaturas.")
+            return {"texto": _reconstruir_malla(cajas, rotadas), "cajas": cajas,
+                    "ocr": False, "es_malla": True}
+        # Entregar "ASIGNATURAS (0)" sería afirmarle al modelo que la malla está vacía, y
+        # el modelo lo creería. Ante una geometría que no sabemos leer, se envía el texto
+        # en orden visual y se deja que el LLM juzgue lo que hay.
+        print("-> [EXTRACCIÓN] Malla detectada pero no reconstruible. Se envía el texto ordenado.")
+        return {"texto": _texto_ordenado(cajas), "cajas": cajas, "ocr": False, "es_malla": True}
 
     return {"texto": _texto_ordenado(cajas), "cajas": cajas, "ocr": False, "es_malla": False}

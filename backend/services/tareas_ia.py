@@ -177,6 +177,14 @@ def _plantilla_valida(texto: str, marcadores: str):
     return (not faltan), faltan
 
 
+def _plantilla_vacia(vacios: list, localizados: int) -> bool:
+    """
+    Plantilla oficial pero mayoritariamente en blanco. Se exige una muestra mínima: con un
+    solo campo localizado, que esté vacío no basta para tumbar el documento.
+    """
+    return localizados >= 4 and len(vacios) > localizados / 2
+
+
 def _campos_sin_llenar(cajas: list, campos: str):
     """
     Devuelve (vacíos, localizados). Un campo cuya etiqueta no aparece en el documento no
@@ -311,9 +319,7 @@ def _calcular_veredicto(resultado: dict):
     vacios = resultado.get("campos_vacios") or []
     localizados = resultado.get("campos_localizados") or 0
 
-    # Plantilla oficial pero mayoritariamente en blanco. Se exige una muestra mínima: con
-    # un solo campo localizado, que esté vacío no basta para tumbar el documento.
-    if localizados >= 4 and len(vacios) > localizados / 2:
+    if _plantilla_vacia(vacios, localizados):
         return porcentaje, "NO CUMPLE"
     if porcentaje <= 50:
         return porcentaje, "NO CUMPLE"
@@ -433,6 +439,19 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
                 analisis_libre=f"Descartado de la auditoría: {motivo}."))
 
         vacios, localizados = _campos_sin_llenar(cajas, meta.get("campos", ""))
+
+        if _plantilla_vacia(vacios, localizados):
+            # El veredicto ya está decidido: el checklist no puede rescatar una plantilla
+            # oficial mayoritariamente en blanco. Llamar al LLM sería tirar tokens.
+            print(f"-> [CELERY] Plantilla vacía ({len(vacios)}/{localizados}). Sin llamada al LLM.")
+            return cerrar(_resultado(
+                nombre_original, veredicto="NO CUMPLE", indicador_evaluado=indicador,
+                indicador_numero=meta.get("indicador"), enrutado_por=meta.get("enrutado_por"),
+                pertenece_software=(pertenece is not False), justificacion_software=motivo,
+                campos_vacios=vacios, campos_localizados=localizados,
+                justificacion=f"{len(vacios)} de {localizados} campos obligatorios están sin llenar.",
+                analisis_libre="El documento usa la plantilla oficial pero está mayoritariamente "
+                               "en blanco. No constituye evidencia: hay que llenarlo antes de auditarlo."))
 
         # --- Capa 2: juicio del LLM ------------------------------------------
         reglas = _recuperar_reglas(vector_db)
