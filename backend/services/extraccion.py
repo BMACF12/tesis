@@ -173,6 +173,50 @@ def _casa(clave: str, mapa: dict):
     return max(coincidencias, key=len) if coincidencias else None
 
 
+# Pie de página del formulario: nunca es el valor de un campo.
+_PIE_DE_PAGINA = re.compile(r"^(CÓDIGO:\s*SGC|Página \d+ de \d+)", re.IGNORECASE)
+
+# Rótulos impresos en la plantilla que no llevan dos puntos y no preceden a ningún campo
+# declarado, así que la regla geométrica no los detecta. En un formulario en blanco el
+# resolvedor los tomaba por valor y el campo de encima parecía lleno.
+ROTULOS_DE_PLANTILLA = frozenset(normalizar(r) for r in (
+    "Unidad de Organización",
+    "Campo de Formación",
+    "Núcleos Básicos de",
+    "TÍTULO Y DENOMINACIÓN",
+    "PERFIL SUGERIDO DEL DOCENTE",
+    "CARGA HORARIA POR COMPONENTES DE APRENDIZAJE",
+    "PROGRAMA DE ASIGNATURA - SÍLABO",
+    "GUIA DE USO DE LABORATORIO",
+    "Rubro",
+    "Nombres y Apellido",
+    "Unidad / Cargo",
+    "Firma",
+    # Fila de fechas del sílabo: sus rótulos van SIN dos puntos, a diferencia del
+    # "Fecha Elaboración:" de la cabecera. En un sílabo vacío, la carga horaria bajaba
+    # hasta aquí y tomaba el rótulo por valor.
+    "Fecha Elaboración",
+    "Fecha de Actualización",
+    "Fecha de Ejecución",
+))
+
+
+def _es_estructura(texto: str) -> bool:
+    """
+    ¿Es texto de la plantilla y no contenido escrito por el docente?
+
+    Sólo se reconocen por su FORMA los dos casos inequívocos: las etiquetas con dos puntos
+    y el pie de página. La forma no sirve para más: "PRESENCIAL" y "CIENCIAS DE LA
+    COMPUTACION" son valores reales y están en mayúsculas igual que un encabezado. Las
+    etiquetas huérfanas sin dos puntos ("Unidad de Organización") se detectan por posición,
+    no por forma: ver la regla de la columna en `_valor_de`.
+    """
+    limpio = texto.strip()
+    return (_es_etiqueta(limpio)
+            or bool(_PIE_DE_PAGINA.match(limpio))
+            or normalizar(limpio) in ROTULOS_DE_PLANTILLA)
+
+
 def _valor_de(filas: list, i: int, j: int, mapa: dict):
     """
     Busca el valor de la etiqueta situada en filas[i][j]: a su derecha en la misma fila;
@@ -182,7 +226,8 @@ def _valor_de(filas: list, i: int, j: int, mapa: dict):
     etiqueta = fila[j]
 
     def es_otra_etiqueta(caja):
-        return _es_etiqueta(caja["t"]) or _casa(normalizar(caja["t"]), mapa) is not None
+        return (_es_estructura(caja["t"])
+                or _casa(normalizar(caja["t"]), mapa) is not None)
 
     for caja in fila[j + 1:]:
         if es_otra_etiqueta(caja):
@@ -226,6 +271,10 @@ def resolver_campos(cajas: list, nombres) -> dict:
     Para cada campo, localiza su etiqueta y devuelve el valor que la acompaña, o None si
     la etiqueta está pero no tiene nada escrito. Los campos cuya etiqueta no aparece se
     omiten del resultado: no se puede afirmar nada de ellos.
+
+    Los rótulos impresos de la plantilla (`ROTULOS_DE_PLANTILLA`) no cuentan como valor:
+    en un formulario en blanco el resolvedor bajaba hasta el rótulo del campo siguiente
+    y ocho campos vacíos parecían llenos.
     """
     filas = _agrupar_filas(cajas)
     mapa = {normalizar(n): n for n in nombres if n}
@@ -272,28 +321,47 @@ def es_malla(cajas: list) -> bool:
     return tiene_hpao and sum(1 for c in cajas if COD_ASIGNATURA.match(c["t"])) >= 10
 
 
-# Separación horizontal entre columnas de asignatura en la malla de referencia. Las mallas
-# se exportan a tamaños de papel distintos: la misma malla puede venir a escala 1 o 3,3.
-PASO_ENTRE_COLUMNAS = 98.0
+# Paso entre celdas de la malla de referencia, medido sobre las etiquetas HPAO. Las mallas
+# se exportan a pliegos distintos: la misma malla aparece a escala 1 o a escala 3,3. Y el
+# escalado no siempre es uniforme: en las dos mallas reales la relación alto/ancho difiere
+# un 12%, así que se deduce un factor horizontal y otro vertical.
+PASO_X_REFERENCIA = 97.5
+PASO_Y_REFERENCIA = 57.0
 
 
-def escala_de_malla(cajas: list) -> float:
-    """
-    Deduce la escala del diagrama a partir de la separación entre columnas de `HPAO`.
-
-    Las ventanas de búsqueda de la celda (nombre, prerrequisito, horas) estaban calibradas
-    sobre una única malla. Otra malla igual de válida, exportada a un pliego mayor, las
-    dejaba a todas fuera de rango y el sistema reconstruía cero asignaturas.
-    """
-    columnas = []
-    for x in sorted(round(c["x"]) for c in cajas if c["t"] == "HPAO"):
-        if not columnas or x - columnas[-1] > 5:
-            columnas.append(x)
-    separaciones = [b - a for a, b in zip(columnas, columnas[1:])]
+def _paso(valores, tolerancia: float = 5.0) -> float:
+    """Separación típica entre líneas de una rejilla, agrupando coordenadas repetidas."""
+    lineas = []
+    for v in sorted(valores):
+        if not lineas or v - lineas[-1] > tolerancia:
+            lineas.append(v)
+    separaciones = [b - a for a, b in zip(lineas, lineas[1:])]
     if not separaciones:
-        return 1.0
+        return 0.0
     from statistics import median
-    return max(0.5, min(8.0, median(separaciones) / PASO_ENTRE_COLUMNAS))
+    return median(separaciones)
+
+
+def escala_de_malla(cajas: list):
+    """
+    Deduce (escala horizontal, escala vertical) del diagrama a partir de la rejilla que
+    forman las etiquetas `HPAO`.
+
+    Las ventanas de búsqueda de la celda estaban calibradas sobre una única malla. Otra
+    malla igual de válida, exportada a un pliego 3,27 veces mayor, las dejaba todas fuera
+    de rango y el sistema reconstruía cero asignaturas.
+    """
+    hpao = [c for c in cajas if c["t"] == "HPAO"]
+    paso_x = _paso([c["x"] for c in hpao])
+    paso_y = _paso([c["y"] for c in hpao])
+
+    ex = paso_x / PASO_X_REFERENCIA if paso_x else 0.0
+    ey = paso_y / PASO_Y_REFERENCIA if paso_y else 0.0
+    # Una malla de una sola columna o de una sola fila no revela ese eje: se toma el otro.
+    ex = ex or ey or 1.0
+    ey = ey or ex
+    # Límites laxos: sólo descartan valores absurdos, no acotan escalas legítimas.
+    return max(0.1, min(30.0, ex)), max(0.1, min(30.0, ey))
 
 
 def filas_de_malla(cajas: list) -> list:
@@ -302,14 +370,14 @@ def filas_de_malla(cajas: list) -> list:
     prerrequisito debajo, y las horas y créditos en la subcolumna de la etiqueta HPAO.
     Todas las distancias se expresan en múltiplos de la escala del diagrama.
     """
-    e = escala_de_malla(cajas)
+    ex, ey = escala_de_malla(cajas)
     etiquetas_hpao = [c for c in cajas if c["t"] == "HPAO"]
     filas = []
     for ancla in sorted((c for c in cajas if COD_ASIGNATURA.match(c["t"])),
                         key=lambda c: (-c["y"], c["x"])):
         hpao = next((h for h in etiquetas_hpao
-                     if 58 * e <= h["x"] - ancla["x"] <= 94 * e
-                     and -34 * e <= h["y"] - ancla["y"] <= -16 * e), None)
+                     if 58 * ex <= h["x"] - ancla["x"] <= 94 * ex
+                     and -34 * ey <= h["y"] - ancla["y"] <= -16 * ey), None)
         if hpao is None:
             continue  # es un código usado como prerrequisito, no una celda de asignatura
 
@@ -317,13 +385,13 @@ def filas_de_malla(cajas: list) -> list:
         dy = lambda c: c["y"] - ancla["y"]
 
         nombre = " ".join(c["t"] for c in sorted(cajas, key=dx)
-                          if 18 * e <= dx(c) <= 72 * e and abs(dy(c)) <= 3 * e
+                          if 18 * ex <= dx(c) <= 72 * ex and abs(dy(c)) <= 3 * ey
                           and not COD_ASIGNATURA.match(c["t"]))
 
         prerrequisitos = []
         for caja in sorted(cajas, key=dx):
             valor = _normalizar_codigo(caja["t"])
-            if not (-8 * e <= dx(caja) <= 58 * e and -26 * e <= dy(caja) <= -4 * e
+            if not (-8 * ex <= dx(caja) <= 58 * ex and -26 * ey <= dy(caja) <= -4 * ey
                     and _es_prerrequisito(valor)):
                 continue
             # Un código que no respeta el patrón de nueve caracteres es un error de tipeo
@@ -333,8 +401,8 @@ def filas_de_malla(cajas: list) -> list:
                 for p in valor.split(" O ")))
 
         numeros = [c["t"] for c in sorted(cajas, key=lambda c: -c["y"])
-                   if abs(c["x"] - hpao["x"]) <= 14 * e
-                   and hpao["y"] - 24 * e < c["y"] < hpao["y"] and c["t"].isdigit()]
+                   if abs(c["x"] - hpao["x"]) <= 14 * ex
+                   and hpao["y"] - 24 * ey < c["y"] < hpao["y"] and c["t"].isdigit()]
 
         filas.append({
             "codigo": ancla["t"],
