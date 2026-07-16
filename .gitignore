@@ -18,3 +18,17 @@ node_modules/
 .next/
 out/
 build/
+
+# Todos los PDF: documentos de prueba y todo lo que genera el triage y los reportes
+*.pdf
+
+# Salidas del triage físico y temporales de subida
+Auditoria_CACES/
+backend/Auditoria_CACES/
+backend/temp/
+
+# Material de conocimiento de los agentes (PDFs, papers, docs institucionales): no versionar.
+# Se conservan sólo los README.md que describen qué colocar en cada carpeta.
+docs/conocimiento/**
+!docs/conocimiento/**/
+!docs/conocimiento/**/README.md
