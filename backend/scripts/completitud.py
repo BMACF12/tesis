@@ -1,22 +1,20 @@
 """
-Índice de Jaccard entre la PLANTILLA OFICIAL y un sílabo concreto. Sin auditor.
+Evaluación de un sílabo contra la PLANTILLA OFICIAL SGC.DI.321. Sin auditor. Reporta DOS
+medidas distintas, porque "tener la estructura" y "estar lleno" no son lo mismo:
 
-    A = los 39 elementos que exige el formulario SGC.DI.321 (plantilla vacía)
-    B = los elementos que ESTE documento tiene realmente rellenados
+  1. CUMPLIMIENTO DE PLANTILLA (el Jaccard principal). ¿Están PRESENTES los 39 elementos que
+     exige la plantilla? Sólo un elemento AUSENTE (que ni siquiera aparece en el documento)
+     resta. J_plantilla = |presentes| / 39. Un sílabo cumple la plantilla si J = 1,000.
 
-    J(A, B) = |A ∩ B| / |A ∪ B|
+  2. VACÍOS (cálculo aparte). De los elementos PRESENTES, cuántos están sin contenido (una
+     sección presente pero sin filas, o un campo etiqueta→valor en blanco). No es incumplir
+     la plantilla: la estructura está, sólo que no se rellenó.
 
-Como B siempre está contenido en A (un sílabo no puede tener elementos que la plantilla no
-contemple), A ∪ B = A y la fórmula se reduce a |B| / |A|: la fracción de la plantilla que
-el documento cumple. Es Jaccard legítimo —el caso clásico de "parecido con un documento de
-referencia"— y conviene decirlo así: en esta configuración equivale a un porcentaje de
-completitud.
-
-    J = 1,000  el documento rellena TODA la plantilla
-    J < 1,000  le faltan elementos; cuanto más bajo, más incompleto
+Ejemplo de por qué van separadas: el `silabus_trampa` (formulario en blanco) CUMPLE la
+plantilla al 100% (todas las secciones presentes) pero sale con ~30 vacíos.
 
 Uso:
-    python scripts/completitud.py 21278           # un documento
+    python scripts/completitud.py 21278           # un documento (las dos medidas)
     python scripts/completitud.py --todos         # todo el corpus de sílabos
 """
 import glob
@@ -185,8 +183,19 @@ def evaluar(ruta):
     return meta, estado, []
 
 
+def ausentes(estado: dict) -> set:
+    """Elementos que NO están en el documento: incumplen la plantilla."""
+    return {n for n, e in estado.items() if e == "AUSENTE"}
+
+
+def vacios(estado: dict) -> set:
+    """Elementos PRESENTES pero sin contenido: no incumplen la plantilla, están sin rellenar."""
+    return {n for n, e in estado.items() if e in ("VACÍO", "VACÍA")}
+
+
 def faltantes(estado: dict) -> set:
-    return {n for n, e in estado.items() if e in ("AUSENTE", "VACÍO", "VACÍA")}
+    """Compat: todo lo que falta o está vacío (ausentes ∪ vacíos)."""
+    return ausentes(estado) | vacios(estado)
 
 
 def informe(ruta):
@@ -200,8 +209,9 @@ def informe(ruta):
         return None
 
     A = set(ANCLA_DE)                    # los 39 elementos de la plantilla
-    faltan = faltantes(estado)
-    B = A - faltan                       # los que el documento sí rellena
+    aus = ausentes(estado)               # no están: incumplen la plantilla
+    vac = vacios(estado)                 # presentes pero sin contenido (aparte)
+    presentes = A - aus
 
     seccion = None
     for nombre, _s, _t, _a in PLANTILLA_SILABO:
@@ -209,56 +219,60 @@ def informe(ruta):
             seccion = SECCION_DE[nombre]
             print(f"\n  {seccion}")
         valor = estado[nombre]
-        vacio = valor in ("AUSENTE", "VACÍO", "VACÍA")
-        print(f"   {'!' if vacio else ' '} {nombre[:42]:44}{valor}")
+        marca = "x" if nombre in aus else ("o" if nombre in vac else " ")
+        print(f"   {marca} {nombre[:42]:44}{valor}")
 
-    interseccion, union = A & B, A | B
-    j = len(interseccion) / len(union)
-
+    jp = len(presentes) / len(A)
     print()
     print("=" * 78)
-    print("ÍNDICE DE JACCARD  (plantilla oficial  vs  este documento)")
+    print("1) CUMPLIMIENTO DE PLANTILLA  (¿están presentes los elementos?)")
     print("=" * 78)
-    print(f"  A = plantilla SGC.DI.321        : {len(A)} elementos")
-    print(f"  B = elementos rellenados aquí   : {len(B)} elementos")
+    print(f"  presentes {len(presentes)} / {len(A)}   →   JACCARD plantilla = {jp:.3f}")
+    if aus:
+        print(f"  x  NO CUMPLE: le faltan {len(aus)} elemento(s) de la plantilla:")
+        for nombre in sorted(aus, key=lambda n: list(ANCLA_DE).index(n)):
+            print(f"      - {nombre}")
+    else:
+        print("     CUMPLE: están los 39 elementos de la plantilla.")
     print()
-    print(f"  |A ∩ B| = {len(interseccion)}      |A ∪ B| = {len(union)}")
-    print()
-    print(f"  JACCARD = {len(interseccion)} / {len(union)} = {j:.3f}")
-    print()
-    if faltan:
-        print(f"  LE FALTAN {len(faltan)} ELEMENTOS:")
-        for nombre in sorted(faltan, key=lambda n: list(ANCLA_DE).index(n)):
+    print("=" * 78)
+    print("2) VACÍOS  (de los presentes, ¿cuántos sin contenido? — cálculo aparte)")
+    print("=" * 78)
+    if vac:
+        print(f"  o  {len(vac)} elemento(s) presentes pero vacíos:")
+        for nombre in sorted(vac, key=lambda n: list(ANCLA_DE).index(n)):
             print(f"      - {nombre}   ({estado[nombre]})")
     else:
-        print("  El documento rellena TODA la plantilla.")
-    return j
+        print("     ningún elemento presente quedó vacío.")
+    return jp
 
 
 def todos():
-    print(f"{'documento':46}{'B':>4}{'A':>4}{'JACCARD':>10}   le falta")
-    print("-" * 100)
-    resultados = []
+    print(f"{'documento':44}{'PLANTILLA':>10}{'vacíos':>8}   le falta de la plantilla (ausentes)")
+    print("-" * 104)
+    jotas, cumplen, total = [], 0, 0
     for ruta in sorted(glob.glob(SILABOS)):
         if "_Reporte" in ruta:
             continue
         _meta, estado, _f = evaluar(ruta)
-        nombre = os.path.basename(ruta)[:44]
+        nombre = os.path.basename(ruta)[:42]
         if estado is None:
-            print(f"{nombre:46}   plantilla no reconocida")
+            print(f"{nombre:44}   plantilla no reconocida")
             continue
         A = set(ANCLA_DE)
-        faltan = faltantes(estado)
-        B = A - faltan
-        j = len(B) / len(A)
-        resultados.append(j)
-        lista = ", ".join(sorted(faltan))[:44] if faltan else ""
-        print(f"{nombre:46}{len(B):>4}{len(A):>4}{j:>10.3f}   {lista}")
-    print("-" * 100)
-    if resultados:
-        print(f"Jaccard medio del corpus: {sum(resultados) / len(resultados):.3f}")
-        print(f"Sílabos completos (J = 1,000): {sum(1 for j in resultados if j == 1.0)}"
-              f" de {len(resultados)}")
+        aus, vac = ausentes(estado), vacios(estado)
+        jp = (len(A) - len(aus)) / len(A)
+        jotas.append(jp)
+        total += 1
+        if not aus:
+            cumplen += 1
+        lista = ", ".join(sorted(aus))[:46] if aus else "—"
+        print(f"{nombre:44}{jp:>10.3f}{len(vac):>8}   {lista}")
+    print("-" * 104)
+    if jotas:
+        print(f"Cumplimiento de plantilla medio: {sum(jotas) / len(jotas):.3f}")
+        print(f"Sílabos que cumplen la plantilla (sin ausentes): {cumplen} de {total}")
+        print("(los 'vacíos' son un cálculo aparte: elementos presentes pero sin contenido)")
 
 
 def buscar(fragmento):

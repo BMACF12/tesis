@@ -26,15 +26,16 @@ FUENTES DE INFORMACIÓN: Proyecto curricular de la carrera. Macro currículo vig
 
 === INDICADOR 2: Proyecto curricular ===
 DIMENSIÓN: Currículo
-ESTADO: SEMANTICO
-MARCADORES: PROYECTO CURRICULAR|DISEÑO CURRICULAR|MACRO CURRÍCULO|MODELO EDUCATIVO
+ESTADO: INSTRUMENTADO
+MARCADORES: Datos generales de la carrera; Carrera a rediseñar|Tipo de trámite; Descripción microcurricular
 CAMPOS:
 ESTÁNDAR: El proyecto o diseño curricular es coherente con el modelo educativo y la misión institucional, y describe metodologías, ambientes y recursos pedagógicos.
+NOTA DE LECTURA: El documento es el formulario oficial de rediseño de carrera (SENESCYT/CES), extenso (decenas de páginas) y con ruido de extracción por coordenadas. Los encabezados "Resultados de aprendizajes", "Descripción mínima de contenidos" y "Unidad de organización curricular" se repiten decenas de veces, una por cada asignatura del microcurrículo: NO los tomes como evidencia del perfil ni del currículo global. Para el elemento 1 mira la sección "Perfil de egreso" y la "Misión" institucional declaradas, no los resultados de aprendizaje por asignatura. Este indicador NO declara campos etiquetados que verificar por coordenadas: su plantilla se comprueba por MARCADORES y sus secciones por el ANCLA de cada elemento.
 ELEMENTOS FUNDAMENTALES:
-1. [SEMÁNTICO] Es coherente con el modelo educativo, la misión institucional y los resultados de aprendizaje del perfil de egreso.
-2. [SEMÁNTICO] Describe la pertinencia de la carrera frente a problemáticas globales, nacionales y a la demanda ocupacional.
-3. [SEMÁNTICO] Especifica los requisitos de ingreso y egreso y los mecanismos de evaluación del estudiante.
-4. [SEMÁNTICO] Describe los medios, ambientes y recursos pedagógicos que soportan el proceso formativo.
+1. [SEMÁNTICO] Es coherente con el modelo educativo, la misión institucional y los resultados de aprendizaje del perfil de egreso. Contrasta la sección "Perfil de egreso" con la "Misión" declarada.
+2. [ESTRUCTURAL] ANCLA "Pertinencia": existe la sección que justifica la carrera frente a problemáticas globales y nacionales y a la demanda ocupacional (escenarios laborables).
+3. [ESTRUCTURAL] ANCLA "Requisitos de ingreso" y ANCLA "Requisitos de graduación": constan ambos apartados y describen los mecanismos de evaluación y titulación del estudiante.
+4. [ESTRUCTURAL] ANCLA "Metodología y ambientes de aprendizajes" y ANCLA "Infraestructura y equipamiento": describen los medios, ambientes, laboratorios y recursos pedagógicos que soportan el proceso formativo.
 5. [SEMÁNTICO] Declara políticas de actualización, seguimiento y mejora continua del currículo.
 FUENTES DE INFORMACIÓN: Proyecto curricular de la carrera vigente. Modelo educativo institucional.
 
@@ -76,7 +77,7 @@ FUENTES DE INFORMACIÓN: Sílabo firmado y legalizado de la asignatura.
 DIMENSIÓN: Currículo
 ESTADO: INSTRUMENTADO
 MARCADORES: GUIA DE USO DE LABORATORIO; A. INFORMACIÓN DE LA GUÍA
-CAMPOS: FECHA; DEPARTAMENTO; CARRERA; ASIGNATURA; PERIODO; NIVEL; DOCENTE; NRC; PRÁCTICA No; TEMA DE LA PRÁCTICA; NUMERO DE HORAS; INTRODUCCIÓN; OBJETIVOS; EQUIPOS; MATERIALES E INSUMOS; REACTIVOS; MUESTRA / OTROS; PRECAUCIONES/ INSTRUCCIONES; ACTIVIDADES POR DESARROLLAR; RESULTADOS OBTENIDOS; CONCLUSIONES; RECOMENDACIONES
+CAMPOS: FECHA; DEPARTAMENTO; CARRERA; ASIGNATURA; PERIODO; NIVEL; DOCENTE; NRC; PRÁCTICA No; LABORATORIO DONDE SE DESARROLLARÁ LA PRÁCTICA; TEMA DE LA PRÁCTICA; NUMERO DE HORAS; INTRODUCCIÓN; OBJETIVOS; EQUIPOS; MATERIALES E INSUMOS; REACTIVOS; MUESTRA / OTROS; PRECAUCIONES/ INSTRUCCIONES; ACTIVIDADES POR DESARROLLAR; RESULTADOS OBTENIDOS; CONCLUSIONES; RECOMENDACIONES
 ESTÁNDAR: Se planifica y desarrolla actividades prácticas en escenarios coherentes con el currículo, documentadas en guías de laboratorio completas, controladas y aprobadas.
 ELEMENTOS FUNDAMENTALES:
 1. [ESTRUCTURAL] ANCLA "A. INFORMACIÓN DE LA GUÍA": existe la sección con sus campos de identificación.

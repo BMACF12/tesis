@@ -1,5 +1,8 @@
 """
-Métrica de Jaccard para un documento cualquiera (sílabo o guía de laboratorio).
+Métrica de Jaccard para el SÍLABO (Indicador 4). Para la GUÍA de laboratorio (Indicador 6)
+usa `completitud_guia.py`, que tiene el mismo modo auditor (`--faltan`): se separó porque la
+guía tiene su propio inventario (`plantilla_guia.py`) y mezclarlas aquí contaba dos veces el
+mismo elemento (una vez como sección, otra como campo).
 
 QUÉ ES JACCARD AQUÍ
 -------------------
@@ -44,9 +47,10 @@ CORPUS = [
 ]
 
 # ---------------------------------------------------------------------------
-# Inventario del formulario oficial. Cada entrada es una sección o tabla que un
-# documento COMPLETO debe tener con contenido. Verificado cruzando 5 sílabos completos
-# y 10 guías: lo que aparece en todos es la plantilla, no el contenido de uno.
+# Inventario del formulario oficial del sílabo. Cada entrada es una sección o tabla que un
+# sílabo COMPLETO debe tener con contenido. Verificado cruzando 5 sílabos completos: lo que
+# aparece en todos es la plantilla, no el contenido de uno. (El inventario de la guía vive
+# en `plantilla_guia.py`.)
 # ---------------------------------------------------------------------------
 SECCIONES_SILABO = [
     ("Datos generales",             "1. DATOS GENERALES",              None),
@@ -66,20 +70,6 @@ SECCIONES_SILABO = [
     ("Acuerdos del docente",        "DEL DOCENTE",                     None),
     ("Acuerdos de los estudiantes", "DE LOS ESTUDIANTES",              None),
     ("Firmas de legalización",      "FIRMAS DE LEGALIZACIÓN",          None),
-]
-
-SECCIONES_GUIA = [
-    ("Información de la guía", "A. INFORMACIÓN DE LA GUÍA", None),
-    ("Introducción",           "INTRODUCCIÓN",              None),
-    ("Objetivos",              "OBJETIVOS",                 None),
-    ("Equipos y materiales",   "EQUIPOS",                   None),
-    ("Precauciones",           "PRECAUCIONES",              None),
-    ("Actividades",            "ACTIVIDADES POR DESARROLLAR", None),
-    ("Resultados obtenidos",   "RESULTADOS OBTENIDOS",      None),
-    ("Conclusiones",           "CONCLUSIONES",              None),
-    ("Recomendaciones",        "RECOMENDACIONES",           None),
-    ("Control de cambios",     "B. CONTROL DE CAMBIOS",     None),
-    ("Aprobación",             "C. APROBACIÓN",             None),
 ]
 
 # Texto impreso de la plantilla: aparece dentro de una sección y NO es contenido.
@@ -124,8 +114,10 @@ def analizar(ruta):
     if not valida:
         return meta, None, None, faltan_marcadores
 
-    indicador = meta["indicador"]
-    plantilla = SECCIONES_SILABO if indicador == 4 else SECCIONES_GUIA
+    if meta["indicador"] != 4:
+        return meta, "OTRO_INDICADOR", None, None
+
+    plantilla = SECCIONES_SILABO
     lineas = documento["texto"].split("\n")
     mayusculas = [l.upper() for l in lineas]
 
@@ -197,6 +189,16 @@ def main():
 
     ruta = buscar(sys.argv[1])
     meta, estado, B, campos_vacios = analizar(ruta)
+
+    if estado == "OTRO_INDICADOR":
+        print(f"Este documento es del Indicador {meta['indicador']} ({meta['nombre']}).")
+        if meta["indicador"] == 6:
+            print("Para las guías de laboratorio usa:")
+            print(f'   python scripts/completitud_guia.py {sys.argv[1]}')
+            print(f'   python scripts/completitud_guia.py {sys.argv[1]} --faltan "..."')
+        else:
+            print("jaccard.py sólo cubre el sílabo (Indicador 4).")
+        raise SystemExit(0)
 
     print("=" * 76)
     print(f"  {os.path.basename(ruta)[:66]}")

@@ -132,13 +132,28 @@ def _enderezar(rotadas: list, x_max: float = 700.0) -> list:
     Se extraen una letra por línea y en orden inverso. Se invierte cada fragmento y se
     encadenan los contiguos de la misma columna. pdfminer pierde las 'i' de estas
     etiquetas ("QuntoPAO"), pero el nivel sigue siendo identificable.
+
+    pdfminer además parte una etiqueta en dos fragmentos ("SeptimoPAO" -> "Septi" + "moPAO",
+    "PrimerPAO" -> "Pri" + "merPAO"). Para reencadenarlos NO sirve un umbral fijo en puntos
+    sobre el borde superior: la misma malla se exporta a pliegos de escala distinta y en la
+    malla 3x mayor el salto entre fragmentos de la MISMA etiqueta (~60 pt) supera el hueco
+    entre etiquetas DISTINTAS de la malla pequeña (~26 pt); ningún corte fijo separa ambos.
+    La señal invariante a la escala es el hueco en blanco real: los fragmentos de una misma
+    etiqueta se tocan (borde inferior de arriba `y0` ≈ borde superior de abajo `y1`, hueco
+    ≈ 0 pt en cualquier escala), mientras que entre etiquetas media una celda vacía. El corte
+    se fija en media altura de fragmento típica, que escala con el diagrama.
     """
+    from statistics import median
     utiles = sorted((c for c in rotadas if c["x"] < x_max),
                     key=lambda c: (round(c["x"] / 8), c["y"]))
+    if not utiles:
+        return []
+    salto_maximo = 0.5 * median(c["y"] - c["y0"] for c in utiles)
     etiquetas, actual, previa = [], [], None
     for caja in utiles:
+        hueco = caja["y0"] - previa["y"] if previa is not None else 0.0
         rompe = previa is not None and (
-            round(caja["x"] / 8) != round(previa["x"] / 8) or caja["y"] - previa["y"] > 25
+            round(caja["x"] / 8) != round(previa["x"] / 8) or hueco > salto_maximo
         )
         if rompe and actual:
             etiquetas.append("".join(actual))
@@ -239,11 +254,15 @@ def _valor_de(filas: list, i: int, j: int, mapa: dict):
     # Una etiqueta con dos puntos y sola en su fila ("FECHA:") sí exige alineación: si no,
     # se tomaría por valor el encabezado de la sección siguiente y el campo parecería lleno.
     es_encabezado = len(fila) == 1 and not _es_etiqueta(etiqueta["t"])
-    # Cabecera de tabla: dos o más celdas, todas etiquetas, así que la fila de valores de
-    # abajo se corresponde una a una. Si la fila ya contiene algún valor no lo es, y mirar
-    # abajo traería el valor de otro campo. Con una sola celda la regla degeneraría: en la
-    # guía de laboratorio, "FECHA:" tomaría por valor el encabezado de la sección siguiente.
-    es_cabecera = len(fila) >= 2 and all(es_otra_etiqueta(c) for c in fila)
+    # Cabecera de tabla: dos o más celdas, todas CAMPOS DECLARADOS, así que la fila de
+    # valores de abajo se corresponde una a una. Se exige que casen con un campo (`_casa`),
+    # no que sólo parezcan etiquetas: un sub-rótulo decorativo como "SALA:" —que acompaña a
+    # "LABORATORIO DONDE SE DESARROLLARÁ LA PRÁCTICA:" en la guía— formaría una cabecera
+    # fantasma y bajaría a tomar por valor la celda de OTRO campo (el TEMA de la práctica),
+    # marcando lleno un campo vacío. Si la fila ya contiene algún valor no es cabecera, y
+    # mirar abajo traería el valor de otro campo.
+    es_cabecera = len(fila) >= 2 and all(
+        _casa(normalizar(c["t"]), mapa) is not None for c in fila)
 
     for k in range(i + 1, min(i + 1 + FILAS_DE_BUSQUEDA, len(filas))):
         candidatos = [c for c in filas[k] if not es_otra_etiqueta(c)]
