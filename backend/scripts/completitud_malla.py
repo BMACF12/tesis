@@ -113,21 +113,32 @@ def evaluar(ruta):
     return filas, niveles, presentes
 
 
-def _universo_y_faltantes(filas, presentes):
-    """Construye A (universo del esquema) y B_faltan (elementos vacíos o PAO ausentes)."""
-    A, faltan = set(), set()
+def _universo_ausentes_vacios(filas, presentes):
+    """Devuelve (A, ausentes, vacios) — las dos medidas, separadas.
+
+    ausentes = un PAO que no se detecta: la ESTRUCTURA del pénsum no está → incumple plantilla.
+    vacios   = un campo de asignatura en VALOR_VACIO: la fila está, el dato no → cálculo aparte.
+    El código de asignatura es el ancla: nunca es ausente (si no está, no hay fila).
+    """
+    A, aus, vac = set(), set(), set()
     for fila in filas:
         for campo in CAMPOS_ASIGNATURA:
             etiqueta = _etiqueta_campo(fila["codigo"], campo)
             A.add(etiqueta)
             if fila.get(campo) == VALOR_VACIO:
-                faltan.add(etiqueta)
+                vac.add(etiqueta)
     for indice in range(1, PAO_ESPERADOS + 1):
         etiqueta = _etiqueta_pao(indice)
         A.add(etiqueta)
         if indice not in presentes:
-            faltan.add(etiqueta)
-    return A, faltan
+            aus.add(etiqueta)
+    return A, aus, vac
+
+
+def _universo_y_faltantes(filas, presentes):
+    """Compat: A y todo lo que falta o está vacío (ausentes ∪ vacíos). Lo usa el modo auditor."""
+    A, aus, vac = _universo_ausentes_vacios(filas, presentes)
+    return A, aus | vac
 
 
 def _anomalias_hpao(filas):
@@ -154,8 +165,7 @@ def informe(ruta):
         print("\nNo es una malla curricular (falta el marcador HPAO y ≥10 códigos).")
         return None
 
-    A, faltan = _universo_y_faltantes(filas, presentes)
-    B = A - faltan
+    A, aus, vac = _universo_ausentes_vacios(filas, presentes)
 
     print(f"\n  ASIGNATURAS RECONSTRUIDAS ({len(filas)}):")
     print(f"   {'':1} {'CÓDIGO':11} {'NOMBRE':34} {'PRE':16} {'HPAO':>5} {'CR':>4}")
@@ -184,51 +194,55 @@ def informe(ruta):
             print(f"       - {fila['codigo']} {fila['nombre'][:28]}: "
                   f"HPAO={fila['hpao']} ≠ 48×{fila['creditos']}={48 * int(fila['creditos'])}")
 
-    interseccion, union = A & B, A | B
-    j = len(interseccion) / len(union) if union else 1.0
+    jp = (len(A) - len(aus)) / len(A) if A else 1.0
     print()
     print("=" * 78)
-    print("ÍNDICE DE JACCARD  (esquema de la malla  vs  este documento)")
+    print("1) CUMPLIMIENTO DE PLANTILLA  (¿está la estructura: asignaturas y 8 PAO?)")
     print("=" * 78)
-    print(f"  A = campos exigidos ({len(filas)}×{len(CAMPOS_ASIGNATURA)}) + {PAO_ESPERADOS} PAO"
-          f"   : {len(A)} elementos")
-    print(f"  B = elementos rellenados aquí                  : {len(B)} elementos")
-    print()
-    print(f"  |A ∩ B| = {len(interseccion)}      |A ∪ B| = {len(union)}")
-    print()
-    print(f"  JACCARD = {len(interseccion)} / {len(union)} = {j:.3f}")
-    print()
-    if faltan:
-        print(f"  LE FALTAN {len(faltan)} ELEMENTOS:")
-        for etiqueta in sorted(faltan):
+    print(f"  A = {len(filas)}×{len(CAMPOS_ASIGNATURA)} campos + {PAO_ESPERADOS} PAO = {len(A)} elementos")
+    print(f"  presentes {len(A) - len(aus)} / {len(A)}   →   JACCARD plantilla = {jp:.3f}")
+    if aus:
+        print(f"  x  NO CUMPLE: faltan {len(aus)} elemento(s) de estructura:")
+        for etiqueta in sorted(aus):
             print(f"      - {etiqueta}")
     else:
-        print("  El documento rellena TODO el esquema (0 campos VACIO, 8 PAO presentes).")
-    return j
+        print("     CUMPLE: las asignaturas y los 8 PAO están presentes.")
+    print()
+    print("=" * 78)
+    print("2) VACÍOS  (campos de asignatura sin dato — cálculo aparte)")
+    print("=" * 78)
+    if vac:
+        print(f"  o  {len(vac)} campo(s) en VACIO:")
+        for etiqueta in sorted(vac):
+            print(f"      - {etiqueta}")
+    else:
+        print("     ningún campo de asignatura quedó vacío.")
+    return jp
 
 
 def todos():
-    print(f"{'documento':46}{'ASIG':>5}{'PAO':>5}{'B':>5}{'A':>5}{'JACCARD':>10}   le falta")
+    print(f"{'documento':44}{'ASIG':>5}{'PAO':>5}{'PLANTILLA':>11}{'vacíos':>8}   le falta")
     print("-" * 108)
-    resultados = []
+    jotas, cumplen, total = [], 0, 0
     for ruta in _rutas_corpus():
         filas, _niveles, presentes = evaluar(ruta)
-        nombre = os.path.basename(ruta)[:44]
+        nombre = os.path.basename(ruta)[:42]
         if filas is None:
-            print(f"{nombre:46}   no es una malla")
+            print(f"{nombre:44}   no es una malla")
             continue
-        A, faltan = _universo_y_faltantes(filas, presentes)
-        B = A - faltan
-        j = len(B) / len(A) if A else 1.0
-        resultados.append(j)
-        lista = ", ".join(sorted(faltan))[:32] if faltan else ""
-        print(f"{nombre:46}{len(filas):>5}{len(presentes):>5}{len(B):>5}{len(A):>5}"
-              f"{j:>10.3f}   {lista}")
+        A, aus, vac = _universo_ausentes_vacios(filas, presentes)
+        jp = (len(A) - len(aus)) / len(A) if A else 1.0
+        jotas.append(jp)
+        total += 1
+        if not aus:
+            cumplen += 1
+        lista = ", ".join(sorted(aus))[:30] if aus else "—"
+        print(f"{nombre:44}{len(filas):>5}{len(presentes):>5}{jp:>11.3f}{len(vac):>8}   {lista}")
     print("-" * 108)
-    if resultados:
-        print(f"Jaccard medio del corpus: {sum(resultados) / len(resultados):.3f}")
-        print(f"Mallas completas (J = 1,000): {sum(1 for j in resultados if j == 1.0)}"
-              f" de {len(resultados)}")
+    if jotas:
+        print(f"Cumplimiento de plantilla medio: {sum(jotas) / len(jotas):.3f}")
+        print(f"Mallas que cumplen la plantilla (sin ausentes): {cumplen} de {total}")
+        print("(los 'vacíos' son un cálculo aparte: campos de asignatura sin dato)")
 
 
 def auditor(ruta, crudo):

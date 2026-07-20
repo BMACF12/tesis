@@ -124,8 +124,19 @@ def evaluar(ruta):
     return estado
 
 
+def ausentes(estado: dict) -> set:
+    """Elementos que NO están en el documento: incumplen la plantilla."""
+    return {n for n, e in estado.items() if e == "AUSENTE"}
+
+
+def vacios(estado: dict) -> set:
+    """Elementos PRESENTES pero sin contenido: no incumplen la plantilla, están sin rellenar."""
+    return {n for n, e in estado.items() if e in ("VACÍO", "VACÍA")}
+
+
 def faltantes(estado: dict) -> set:
-    return {n for n, e in estado.items() if e in ("AUSENTE", "VACÍO", "VACÍA")}
+    """Compat: todo lo que falta o está vacío (ausentes ∪ vacíos). Lo usa el modo auditor."""
+    return ausentes(estado) | vacios(estado)
 
 
 def informe(ruta):
@@ -138,8 +149,9 @@ def informe(ruta):
         return None
 
     A = set(ANCLA_DE)                     # los 27 elementos de la plantilla
-    faltan = faltantes(estado)
-    B = A - faltan                        # los que el documento sí rellena
+    aus = ausentes(estado)                # no están: incumplen la plantilla
+    vac = vacios(estado)                  # presentes pero sin contenido (aparte)
+    presentes = A - aus
 
     seccion = None
     for nombre, _s, _t, _a in PLANTILLA_GUIA:
@@ -147,54 +159,61 @@ def informe(ruta):
             seccion = SECCION_DE[nombre]
             print(f"\n  {seccion}")
         valor = estado[nombre]
-        vacio = valor in ("AUSENTE", "VACÍO", "VACÍA")
-        print(f"   {'!' if vacio else ' '} {nombre[:42]:44}{valor}")
+        marca = "x" if nombre in aus else ("o" if nombre in vac else " ")
+        print(f"   {marca} {nombre[:42]:44}{valor}")
 
-    j = len(A & B) / len(A | B)
+    jp = len(presentes) / len(A)
     print()
     print("=" * 78)
-    print("ÍNDICE DE JACCARD  (plantilla oficial de la guía  vs  este documento)")
+    print("1) CUMPLIMIENTO DE PLANTILLA  (¿están presentes los elementos?)")
     print("=" * 78)
-    print(f"  A = plantilla de la guía        : {len(A)} elementos")
-    print(f"  B = elementos rellenados aquí   : {len(B)} elementos")
+    print(f"  presentes {len(presentes)} / {len(A)}   →   JACCARD plantilla = {jp:.3f}")
+    if aus:
+        print(f"  x  NO CUMPLE: le faltan {len(aus)} elemento(s) de la plantilla:")
+        for nombre in sorted(aus, key=lambda n: list(ANCLA_DE).index(n)):
+            print(f"      - {nombre}")
+    else:
+        print(f"     CUMPLE: están los {len(A)} elementos de la plantilla.")
     print()
-    print(f"  |A ∩ B| = {len(A & B)}      |A ∪ B| = {len(A | B)}")
-    print()
-    print(f"  JACCARD = {len(A & B)} / {len(A | B)} = {j:.3f}")
-    print()
-    if faltan:
-        print(f"  LE FALTAN {len(faltan)} ELEMENTOS:")
-        for nombre in sorted(faltan, key=lambda n: list(ANCLA_DE).index(n)):
+    print("=" * 78)
+    print("2) VACÍOS  (de los presentes, ¿cuántos sin contenido? — cálculo aparte)")
+    print("=" * 78)
+    if vac:
+        print(f"  o  {len(vac)} elemento(s) presentes pero vacíos:")
+        for nombre in sorted(vac, key=lambda n: list(ANCLA_DE).index(n)):
             print(f"      - {nombre}   ({estado[nombre]})")
     else:
-        print("  El documento rellena TODA la plantilla.")
-    return j
+        print("     ningún elemento presente quedó vacío.")
+    return jp
 
 
 def todos():
-    print(f"{'documento':52}{'B':>4}{'A':>4}{'JACCARD':>10}   le falta")
-    print("-" * 108)
-    resultados = []
+    print(f"{'documento':50}{'PLANTILLA':>10}{'vacíos':>8}   le falta / está vacío")
+    print("-" * 112)
+    jotas, cumplen, total = [], 0, 0
     for ruta in sorted(glob.glob(GUIAS)):
         if "_Reporte" in ruta:
             continue
         estado = evaluar(ruta)
-        nombre = os.path.basename(ruta)[:50]
+        nombre = os.path.basename(ruta)[:48]
         if estado is None:
-            print(f"{nombre:52}   plantilla no reconocida")
+            print(f"{nombre:50}   plantilla no reconocida")
             continue
         A = set(ANCLA_DE)
-        faltan = faltantes(estado)
-        B = A - faltan
-        j = len(B) / len(A)
-        resultados.append(j)
-        lista = ", ".join(sorted(faltan))[:36] if faltan else ""
-        print(f"{nombre:52}{len(B):>4}{len(A):>4}{j:>10.3f}   {lista}")
-    print("-" * 108)
-    if resultados:
-        print(f"Jaccard medio del corpus: {sum(resultados) / len(resultados):.3f}")
-        print(f"Guías completas (J = 1,000): {sum(1 for j in resultados if j == 1.0)}"
-              f" de {len(resultados)}")
+        aus, vac = ausentes(estado), vacios(estado)
+        jp = (len(A) - len(aus)) / len(A)
+        jotas.append(jp)
+        total += 1
+        if not aus:
+            cumplen += 1
+        detalle = (f"AUSENTES: {', '.join(sorted(aus))}" if aus
+                   else (f"vacíos: {', '.join(sorted(vac))}" if vac else "—"))
+        print(f"{nombre:50}{jp:>10.3f}{len(vac):>8}   {detalle[:40]}")
+    print("-" * 112)
+    if jotas:
+        print(f"Cumplimiento de plantilla medio: {sum(jotas) / len(jotas):.3f}")
+        print(f"Guías que cumplen la plantilla (sin ausentes): {cumplen} de {total}")
+        print("(los 'vacíos' son un cálculo aparte: elementos presentes pero sin contenido)")
 
 
 def auditor(ruta, crudo):

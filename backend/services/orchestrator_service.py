@@ -222,6 +222,10 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
         # No es la plantilla oficial: problema distinto de una plantilla mal llenada.
         carpeta_destino = os.path.join(BASE_DIR, "12_Plantilla_No_Reconocida")
         crear_reporte = True
+    elif "NOMBRE NO VALIDO" in veredicto:
+        # Sílabo/guía cuyo nombre no cumple el formato oficial: rechazado sin evaluar.
+        carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
+        crear_reporte = True
     elif not pertenece or "NO CUMPLE" in veredicto:
         carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
         crear_reporte = True

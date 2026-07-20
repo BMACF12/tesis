@@ -67,19 +67,50 @@ Ubicación: `backend/services/tareas_ia.py:379`.
    `:274`) y el documento. Se invoca
    `ChatGroq("llama-3.3-70b-versatile", temperature=0).with_structured_output(DictamenAuditoria)`
    (`:466`). El LLM devuelve **sólo** `checklist` + `analisis_libre`.
+8. **Recorte del proyecto curricular (sólo Indicador 2)** — `services/recorte_proyecto.py`.
+   El documento del Indicador 2 no es una plantilla de 1-6 páginas sino el formulario de
+   rediseño SENESCYT/CES: el ejemplar real extrae **333.218 ch ≈ 98.000 tokens** y la cuota
+   diaria de Groq es de **100.000**, así que `"documento": texto` agotaba la cuota del día con
+   **un solo documento**. Antes de invocar al LLM, `recortar_proyecto(texto)` lo reduce a
+   **~18.700 ch ≈ 5.500 tokens (5,6%)**. Los demás indicadores no se tocan: van enteros.
+   El recorte:
+   - **Parte el texto por los encabezados reales del formulario**, reconocidos sólo **a
+     principio de línea** y con la caja alta exacta: en el PDF real "Pertinencia" y "Misión"
+     aparecen 8 veces cada una dentro del cuerpo (párrafos, citas de la LOES) y **una sola vez**
+     como encabezado. Buscar la subcadena suelta partiría el documento por donde no es.
+   - **Descarta** las secciones que no son evidencia de ningún elemento: `Convenios` (lista de
+     nombres de PDF), `Descripción microcurricular` (76k de fichas repetidas por asignatura,
+     que la `NOTA DE LECTURA` del `.txt` ya prohíbe usar como evidencia del perfil global),
+     `Personal académico` y `Estudio técnico` (son de otras dimensiones CACES).
+   - **Topa cada sección** (`SECCIONES`, tope documentado por sección; suma ≈ 20.000 ch).
+     Dentro de cada una **no corta por la cabeza**: conserva enteras las líneas cortas (las
+     preguntas oficiales del formulario) y reparte el presupuesto restante **a partes iguales**
+     entre las líneas largas de prosa, catando la cabeza de cada una. Es deliberado: en
+     "Pertinencia" la evidencia del elemento 2 ("demanda ocupacional", "escenarios laborables")
+     está en los caracteres 99.396 y 113.387 de 116.965 — **al final**; un `seccion[:tope]`
+     habría cortado justo la evidencia y producido un incumplimiento espurio. Las secciones
+     que son catálogos (Infraestructura: ~140 líneas de laboratorios) se **muestrean con paso
+     uniforme**, no por la cabeza.
+   - **Marca todo truncado** (`[… truncado …]`, `[... sección truncada ...]`) y antepone una
+     cabecera que le dice al LLM qué se omitió y que un corte de la herramienta **no** es una
+     sección incompleta del proyecto. Un recorte silencioso haría que el modelo tomara nuestro
+     corte por un defecto del documento.
+   - **Degrada con gracia**: si no aparece ningún encabezado conocido (el documento no es el
+     formulario), entrega la cabeza del texto marcada, en vez de reventar o mandar una cadena
+     vacía que el LLM leería como documento en blanco.
 
 ### Capa 3 — Veredicto (determinista)
 
-8. `_calcular_veredicto` (`:303`) decide sin intervención del LLM:
+9. `_calcular_veredicto` (`:303`) decide sin intervención del LLM:
    - `plantilla_valida == False` → `PLANTILLA NO RECONOCIDA` (0%).
    - `pertenece_software == False` → `NO CUMPLE` (0%).
    - checklist vacío → `ERROR_SIN_CHECKLIST`.
    - plantilla mayoritariamente vacía → `NO CUMPLE`.
    - `porcentaje = round(cumplidos/total*100)`; `≤50` → `NO CUMPLE`; `≥70` **y sin campos
      vacíos** → `CUMPLE`; en otro caso → `CUMPLE PARCIALMENTE`.
-9. **Triage físico** (`enrutar_documento`, `orchestrator_service.py:186`): copia el PDF a la
-   carpeta destino y genera el reporte PDF individual.
-10. Limpieza del temporal (`cerrar`, `:383`).
+10. **Triage físico** (`enrutar_documento`, `orchestrator_service.py:186`): copia el PDF a la
+    carpeta destino y genera el reporte PDF individual.
+11. Limpieza del temporal (`cerrar`, `:383`).
 
 Al terminar todo el lote, el **chord** dispara `generar_reporte_ejecutivo` (`:519`) → PDF
 resumen global. Las tareas fallidas **devuelven un dict** con veredicto `ERROR_*` en vez de
@@ -136,6 +167,7 @@ llega un nombre no mapeado.
 | `backend/main.py` | App FastAPI + CORS |
 | `backend/api/rutas.py` | Endpoints `/evaluar_documento/` (chord) y `/status/{task_id}` |
 | `backend/services/extraccion.py` | **Capa 1**: extracción por coordenadas, reconstrucción de la malla, resolución de campos etiqueta→valor, respaldo OCR |
+| `backend/services/recorte_proyecto.py` | **Capa 2**: recorta el proyecto curricular (Indicador 2) de ~333k a ~19k ch antes del prompt. Texto puro: sin Celery ni ChromaDB, se prueba y se mide sin cuota |
 | `backend/services/tareas_ia.py` | Worker Celery: orquesta las 3 capas (hechos, RAG, juicio LLM, veredicto) y el reporte ejecutivo |
 | `backend/services/orchestrator_service.py` | Triage físico + generación de reportes PDF |
 | `backend/scripts/crear_base_oro.py` | Ingesta de la normativa a ChromaDB (un `Document` por indicador, con metadatos; sin troceo) |

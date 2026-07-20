@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Veredicto = "CUMPLE" | "CUMPLE PARCIALMENTE" | "NO CUMPLE";
+type Veredicto = "CUMPLE" | "CUMPLE PARCIALMENTE" | "NO CUMPLE" | "NOMBRE NO VALIDO";
 
 interface ElementoChecklist {
   numero_elemento: number;
@@ -49,6 +49,7 @@ const getThemeVars = (veredicto: Veredicto) => {
         bar: "bg-gradient-to-r from-amber-400 to-orange-500",
       };
     case "NO CUMPLE":
+    case "NOMBRE NO VALIDO":
       return {
         border: "border-rose-500",
         bgInfo: "bg-rose-500/10",
