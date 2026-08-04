@@ -27,7 +27,7 @@ from langchain_groq import ChatGroq
 from pydantic import BaseModel, Field, model_validator
 
 from services.extraccion import comparable, extraer_documento, normalizar, resolver_campos
-from services.orchestrator_service import enrutar_documento
+from services.orchestrator_service import enrutar_documento, sanitizar_nombre
 from services.recorte_proyecto import recortar_proyecto
 
 load_dotenv()
@@ -402,36 +402,41 @@ def _calcular_veredicto(resultado: dict):
 
 
 # ---------------------------------------------------------------------------
-# Formato del nombre de archivo (sólo Indicadores 4 y 6)
+# Nombre del archivo del sílabo (Indicador 4)
 # ---------------------------------------------------------------------------
-# Sólo el sílabo (4) y la guía de laboratorio (6) exigen un nombre con formato oficial.
-# Si no lo cumplen, el documento se RECHAZA aquí mismo —sin llegar al LLM— con un mensaje
-# que explica el formato correcto. Los demás indicadores (1, 2, 3, 7) no se validan por
-# nombre: exigirlo "afectaría a los demás indicadores".
-#   Sílabo: debe empezar por "Silabo_NRC-<código>…" — la palabra "Silabo" (no "Silabus"),
-#           seguida del código NRC/NCR y su número.
-#   Guía:   debe empezar por "<n.n> Guía Laboratorio …" (admite "Guia" sin tilde).
-_PATRON_NOMBRE = {
-    4: re.compile(r"^\s*silabo[\s_-]*n(?:rc|cr)[\s_-]*\d{4,5}", re.IGNORECASE),
-    6: re.compile(r"^\s*\d+\.\d+\s+gu[ií]a\s+laboratorio", re.IGNORECASE),
-}
-_FORMATO_ESPERADO = {
-    4: ("El nombre del archivo no corresponde al formato oficial del sílabo. Debe empezar "
-        "por «Silabo_NRC-<código>_<asignatura>»: la palabra «Silabo» (no «Silabus»), seguida "
-        "del código NRC y su número. Ejemplo: «Silabo_NRC-21495_Aseguramiento_de_la_Calidad_del_SW»."),
-    6: ("El nombre del archivo no corresponde al formato de la guía de laboratorio. Debe empezar "
-        "por «<n.n> Guía Laboratorio <título>»: el número de práctica (p. ej. 1.1), la locución "
-        "«Guía Laboratorio» y el título. Ejemplo: «1.1 Guía Laboratorio ABC Implementa algoritmos de búsqueda»."),
-}
+# El nombre NO se usa para rechazar: cualquier documento se lee por contenido y se
+# decide por él (léxico, plantilla, pertinencia, LLM). Un sílabo aprobado se renombra
+# al formato oficial a partir de sus propios campos; da igual cómo se llamara al subirlo.
+def _nombre_normalizado_silabo(cajas: list, nombre_original: str) -> Optional[str]:
+    """Nombre canónico de un sílabo aprobado: «Silabo_NRC-<código>_<asignatura>_<docente>»,
+    tomado de los campos del propio contenido (no del nombre, que puede venir truncado).
+    Devuelve None si no se puede leer el NRC —el dato mínimo imprescindible—."""
+    campos = resolver_campos(cajas, ["NRC", "Nombre Asignatura", "Docente"]) if cajas else {}
 
+    # NRC: primero del contenido; si no, del nombre original (que ya pasó el filtro).
+    encontrado = re.search(r"\d{4,5}", (campos.get("NRC") or "").strip())
+    if not encontrado:
+        encontrado = re.search(r"n(?:rc|cr)[\s_-]*(\d{4,5})", nombre_original or "", re.IGNORECASE)
+        if not encontrado:
+            return None
+        nrc = encontrado.group(1)
+    else:
+        nrc = encontrado.group(0)
 
-def _nombre_no_valido(nombre_original: str, indicador_numero) -> str:
-    """Devuelve el mensaje de formato si el nombre de un sílabo (4) o guía (6) NO cumple;
-    "" si cumple o si el indicador no se valida por nombre (1, 2, 3, 7)."""
-    patron = _PATRON_NOMBRE.get(indicador_numero)
-    if patron is None or patron.search(nombre_original or ""):
-        return ""
-    return _FORMATO_ESPERADO[indicador_numero]
+    def _limpio(valor, tope):
+        # sanitizar_nombre("") devuelve "Indicador_Desconocido"; hay que evitar el vacío.
+        valor = (valor or "").strip()
+        return sanitizar_nombre(valor)[:tope].strip("_") if valor else ""
+
+    asignatura = _limpio(campos.get("Nombre Asignatura"), 45)
+    docente = _limpio(campos.get("Docente"), 35)
+
+    partes = ["Silabo", f"NRC-{nrc}"]
+    if asignatura:
+        partes.append(asignatura)
+    if docente:
+        partes.append(docente)
+    return "_".join(partes)
 
 
 # ---------------------------------------------------------------------------
@@ -523,17 +528,6 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
         norma, meta = _recuperar_norma(vector_db, texto)
         indicador = f"Indicador {meta.get('indicador')}: {meta.get('nombre')}"
 
-        # Sólo sílabo (4) y guía (6) se validan por nombre. Si no cumple el formato,
-        # se rechaza aquí mismo, sin gastar el LLM, explicando el formato correcto.
-        motivo_nombre = _nombre_no_valido(nombre_original, meta.get("indicador"))
-        if motivo_nombre:
-            print(f"-> [CELERY] Nombre no válido para {indicador}. Sin llamada al LLM.")
-            return cerrar(_resultado(
-                nombre_original, veredicto="NOMBRE NO VALIDO", indicador_evaluado=indicador,
-                indicador_numero=meta.get("indicador"), enrutado_por=meta.get("enrutado_por"),
-                justificacion="Rechazado: el nombre del archivo no cumple el formato requerido.",
-                analisis_libre=motivo_nombre))
-
         plantilla_ok, faltan = _plantilla_valida(texto, meta.get("marcadores", ""))
         if not plantilla_ok:
             print(f"-> [CELERY] Plantilla no reconocida (faltan: {faltan}). Sin llamada al LLM.")
@@ -610,6 +604,13 @@ def auditar_documento_pesado(self, ruta_pdf: str, nombre_original: str = None):
             f"{sum(1 for e in resultado['checklist'] if e['cumple'])} de "
             f"{len(resultado['checklist'])} elementos fundamentales cumplidos; "
             f"{len(vacios)} campo(s) sin llenar.")
+
+        # Un sílabo aprobado se renombra al formato oficial; el orquestador lo aplica
+        # sólo si termina en la carpeta oficial (CUMPLE / CUMPLE PARCIALMENTE).
+        if meta.get("indicador") == 4:
+            resultado["nombre_normalizado"] = _nombre_normalizado_silabo(cajas, nombre_original)
+            if resultado["nombre_normalizado"]:
+                print(f"-> [CELERY] Nombre normalizado: {resultado['nombre_normalizado']}")
 
         print(f"-> [CELERY] {nombre_original}: {resultado['veredicto']} "
               f"({resultado['porcentaje_estimado']}%) | campos vacíos: {vacios}")

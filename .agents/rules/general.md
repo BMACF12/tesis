@@ -1,3 +1,8 @@
+---
+description: "Reglas generales del proyecto Auditor IA CACES y el entorno de tesis"
+alwaysApply: true
+---
+
 # Auditor IA — Sistema de Evaluación de Evidencias CACES
 
 Proyecto de tesis. Sistema automatizado que clasifica, evalúa y ordena evidencias
@@ -19,14 +24,7 @@ Antes de tocar código o dar recomendaciones, lee los archivos de `docs/` en est
 
 ## Agentes especializados — úsalos por defecto
 
-Este proyecto tiene un roster de subagentes expertos en `.claude/agents/` (índice en
-`.claude/agents/README.md`). **Delegar es el comportamiento por defecto, no la excepción.** En
-cuanto una tarea encaje en el dominio de un agente de la tabla de abajo, **invócalo con la
-herramienta Agent en vez de resolverla tú directamente** —aunque parezca rápida—: cada agente ya
-conoce sus archivos, sus invariantes y sus trampas, y trabajar en solitario donde hay un experto
-es justamente lo que este README busca evitar. Trabaja tú sin delegar sólo cuando: (a) ninguna
-fila encaja, (b) es una pregunta trivial de una línea, o (c) estás **coordinando** a varios
-agentes y sintetizando su salida. Si dudas, delega. Direccionamiento:
+Este proyecto tiene un roster de subagentes expertos en `.agents/agents/`. **Delegar es el comportamiento por defecto, no la excepción.** En cuanto una tarea encaje en el dominio de un agente de la tabla de abajo, **invócalo (o menciónalo/invoca subagente) en vez de resolverla tú directamente** —aunque parezca rápida—: cada agente ya conoce sus archivos, sus invariantes y sus trampas, y trabajar en solitario donde hay un experto es justamente lo que este README busca evitar. Trabaja tú sin delegar sólo cuando: (a) ninguna fila encaja, (b) es una pregunta trivial de una línea, o (c) estás **coordinando** a varios agentes y sintetizando su salida. Si dudas, delega. Direccionamiento:
 
 | Si la tarea trata de… | Usa el agente |
 |---|---|
@@ -45,14 +43,9 @@ agentes y sintetizando su salida. Si dudas, delega. Direccionamiento:
 | Validar una fuente nueva: ¿es buena, sirve, está repetida?, ¿qué número le toca? | `curador-fuentes` |
 
 **Trabajo sobre el manuscrito escrito → empieza siempre por el trío de la tesis:**
-`tesis-escritura` (contenido, estructura, citas IEEE y corpus), `redaccion-academica` (estilo,
-prosa y líneas argumentales) y `formato-espe` (formato oficial ESPE y entrega en biblioteca). Se
-reparten el trabajo y se cruzan; para una revisión completa de un capítulo, invócalos y sintetiza
-tú el resultado.
+`tesis-escritura` (contenido, estructura, citas IEEE y corpus), `redaccion-academica` (estilo, prosa y líneas argumentales) y `formato-espe` (formato oficial ESPE y entrega en biblioteca). Se reparten el trabajo y se cruzan; para una revisión completa de un capítulo, invócalos y sintetiza tú el resultado.
 
-Para tareas que cruzan capas (p. ej. un cambio de campos que toca extracción + base de oro +
-veredicto), coordina a los agentes relevantes y sintetiza tú el resultado. Su material de
-referencia vive en `docs/conocimiento/<tema>/` (cada carpeta tiene un README de qué contener).
+Para tareas que cruzan capas (p. ej. un cambio de campos que toca extracción + base de oro + veredicto), coordina a los agentes relevantes y sintetiza tú el resultado. Su material de referencia vive en `docs/conocimiento/<tema>/` (cada carpeta tiene un README de qué contener).
 
 ## Stack (resumen)
 
@@ -66,18 +59,9 @@ referencia vive en `docs/conocimiento/<tema>/` (cada carpeta tiene un README de 
 
 ## Reglas de trabajo en este repo
 
-- **No inventes rutas ni funciones.** Verifica en el código antes de recomendar. Este
-  README de contexto puede quedar desactualizado; el código manda.
-- **El frontend usa una versión de Next.js con breaking changes** (ver `frontend/AGENTS.md`):
-  lee `node_modules/next/dist/docs/` antes de escribir código de Next.
+- **No inventes rutas ni funciones.** Verifica en el código antes de recomendar. Este README de contexto puede quedar desactualizado; el código manda.
+- **El frontend usa una versión de Next.js con breaking changes** (ver `frontend/AGENTS.md`): lee `node_modules/next/dist/docs/` antes de escribir código de Next.
 - **No arranques servicios pesados sin pedirlo** (Redis en Docker, worker Celery, uvicorn, `npm run dev`).
-- **Búsquedas y el venv (25 974 `.py` en `venv/` de la raíz, el 99,9 % del repo):** *Grep* está
-  limpio — ripgrep respeta `.gitignore` (que excluye `venv/`), así que las búsquedas de contenido
-  nunca lo tocan. *Glob*, en cambio, **NO respeta `.gitignore`**: un `**/*.py` desde la raíz
-  devuelve ~26 000 archivos del venv y entierra los ~33 reales del proyecto. **Regla: en Glob
-  acota siempre a la subcarpeta** (`backend/**/*.py`, `scripts/*.py`, `frontend/**/*.tsx`) y
-  **nunca uses `**` desde la raíz**. Lo mismo con `find` en Bash: añade `-not -path "./venv/*"`.
-- **El bug del filtro de Chroma (B1) ya está resuelto** (`_recuperar_norma`, `tareas_ia.py:212`):
-  la norma se lee por metadato exacto y el respaldo por similitud filtra `tipo="norma"`. Ya se
-  puede medir sobre el código actual (ver `docs/PLAN_EVALUACION.md` y los scripts de evaluación).
+- **Búsquedas y el venv (25 974 `.py` en `venv/` de la raíz, el 99,9 % del repo):** *Grep* está limpio — ripgrep respeta `.gitignore` (que excluye `venv/`), así que las búsquedas de contenido nunca lo tocan. *Glob*, en cambio, **NO respeta `.gitignore`**: un `**/*.py` desde la raíz devuelve ~26 000 archivos del venv y entierra los ~33 reales del proyecto. **Regla: en Glob acota siempre a la subcarpeta** (`backend/**/*.py`, `scripts/*.py`, `frontend/**/*.tsx`) y **nunca uses `**` desde la raíz**. Lo mismo con `find` en Bash: añade `-not -path "./venv/*"`.
+- **El bug del filtro de Chroma (B1) ya está resuelto** (`_recuperar_norma`, `tareas_ia.py:212`): la norma se lee por metadato exacto y el respaldo por similitud filtra `tipo="norma"`. Ya se puede medir sobre el código actual (ver `docs/PLAN_EVALUACION.md` y los scripts de evaluación).
 - Claves en `backend/.env` (`GROQ_API_KEY`, `GOOGLE_API_KEY`), fuera de git.

@@ -197,18 +197,13 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
     
     # 1. Generar Timestamp para evitar sobreescrituras
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nombre_base, ext = os.path.splitext(nombre_original)
-    
-    # Recortar el nombre base a máximo 50 caracteres para evitar el error de MAX_PATH de Windows (260 chars)
-    nombre_base = nombre_base[:50]
-    
-    nuevo_nombre_pdf = f"{nombre_base}_{timestamp}{ext}"
-    nuevo_nombre_reporte = f"{nombre_base}_{timestamp}_Reporte.pdf"
-    
+    _, ext = os.path.splitext(nombre_original)
+
     # 2. Lógica de Triage (Enrutamiento)
     # El orden importa: un error de lectura no lleva veredicto de pertinencia fiable, así
     # que se resuelve antes de mirar 'pertenece_software'.
     pertenece = resultado_llm.get("pertenece_software", True)
+    es_carpeta_oficial = False  # sólo los aprobados que van a la carpeta de su indicador
 
     if "ERROR_CUOTA" in veredicto:
         # El documento no tiene defecto: se quedó sin cuota de API. Se aparta para volver
@@ -222,10 +217,6 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
         # No es la plantilla oficial: problema distinto de una plantilla mal llenada.
         carpeta_destino = os.path.join(BASE_DIR, "12_Plantilla_No_Reconocida")
         crear_reporte = True
-    elif "NOMBRE NO VALIDO" in veredicto:
-        # Sílabo/guía cuyo nombre no cumple el formato oficial: rechazado sin evaluar.
-        carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
-        crear_reporte = True
     elif not pertenece or "NO CUMPLE" in veredicto:
         carpeta_destino = os.path.join(BASE_DIR, "11_Documentos_Rechazados")
         crear_reporte = True
@@ -233,7 +224,22 @@ def enrutar_documento(resultado_llm: dict, ruta_pdf_temporal: str, nombre_origin
         # "CUMPLE" o "CUMPLE PARCIALMENTE" van a la carpeta de su indicador oficial
         carpeta_destino = os.path.join(BASE_DIR, obtener_carpeta_indicador(indicador))
         crear_reporte = True
-            
+        es_carpeta_oficial = True
+
+    # 3. Nombre del archivo. Un sílabo APROBADO se renombra al formato oficial
+    # "Silabo_NRC-<código>_<asignatura>_<docente>" (lo calcula el worker desde el
+    # contenido). El resto —rechazos, errores, otros indicadores— conserva su nombre.
+    nombre_normalizado = resultado_llm.get("nombre_normalizado")
+    if es_carpeta_oficial and nombre_normalizado:
+        nombre_base = nombre_normalizado
+    else:
+        nombre_base = os.path.splitext(nombre_original)[0]
+    # Recortar para no chocar con el límite MAX_PATH de Windows (260 chars).
+    nombre_base = nombre_base[:90]
+
+    nuevo_nombre_pdf = f"{nombre_base}_{timestamp}{ext}"
+    nuevo_nombre_reporte = f"{nombre_base}_{timestamp}_Reporte.pdf"
+
     os.makedirs(carpeta_destino, exist_ok=True)
     ruta_final_pdf = os.path.join(carpeta_destino, nuevo_nombre_pdf)
     ruta_final_reporte = os.path.join(carpeta_destino, nuevo_nombre_reporte)

@@ -26,6 +26,10 @@ parte del sistema y sabe qué archivos leer y qué invariantes respetar.
 | `formatos-caces` | Formatos oficiales por modelo CACES 2024 **y** por paper académico |
 | `objetivos-tesis` | Objetivos General/OE1/OE2/OE3 y su cumplimiento honesto; plan de evaluación |
 | `evaluacion-pruebas` | Banco de pruebas y evaluación experimental (OE3): scripts, corpus, métricas |
+| `tesis-escritura` | El **documento** escrito: redacción y revisión de capítulos, citas IEEE, bibliografía y el corpus de `Documentos para la tesis/` |
+| `redaccion-academica` | *(Solo lectura — comenta y propone, no edita)* El **oficio** de escribir: estilo/prosa formal (persona, gerundios, tiempos, sobreventa) y **líneas argumentales** (coherencia objetivo→método→resultado→conclusión) |
+| `formato-espe` | *(Solo lectura — comenta y propone, no edita)* El **formato** oficial: Guía Metodológica ESPE UDED-FOR-2026-V1-004 (APA 7ª en el cuerpo, **IEEE en las referencias** de C. Computación) y la entrega en biblioteca |
+| `curador-fuentes` | Portero de la bibliografía: calidad, pertinencia y duplicados de cada fuente nueva; asignación del número IEEE |
 
 ## Carpetas de conocimiento
 Los agentes que necesitan material externo apuntan a `docs/conocimiento/<tema>/`. Cada carpeta
