@@ -1,0 +1,5 @@
+# Reglas para las herramientas de búsqueda (ripgrep), NO para git.
+# `.gitignore` excluye docs/conocimiento/** para no versionar PDFs y material pesado,
+# pero eso también dejaba el cache de texto de la tesis invisible a Grep.
+# Aquí se vuelve a incluir: sigue sin versionarse, pero ahora se puede buscar en él.
+!docs/conocimiento/tesis-escritura/texto/**

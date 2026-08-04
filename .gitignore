@@ -1,34 +1,92 @@
-# Variables de entorno (¡El escudo de tus claves!)
+# ==========================================================================
+# Auditor IA — CACES · .gitignore
+# Regla general: se versiona el CÓDIGO y la DOCUMENTACIÓN en texto.
+# Nunca se versionan binarios pesados (PDF, Office), material de terceros,
+# entornos, ni salidas generadas por el propio sistema.
+# ==========================================================================
+
+# --- Secretos (¡El escudo de tus claves!) -----------------------------------
 .env
 *.env
+backend/.env
 
-# Entornos virtuales de Python
+# --- Entornos y caches de Python --------------------------------------------
 venv/
 env/
+.venv/
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Carpetas pesadas o temporales del Backend
-chroma_data/
-documentos_prueba/
-temp_upload.pdf
-
-# Frontend (Next.js)
+# --- Frontend (Next.js) -----------------------------------------------------
 node_modules/
 .next/
 out/
 build/
+*.tsbuildinfo
+.vercel
 
-# Todos los PDF: documentos de prueba y todo lo que genera el triage y los reportes
-*.pdf
+# --- Infraestructura en ejecución (Redis / Celery / Chroma) -----------------
+chroma_data/
+dump.rdb
+celerybeat-schedule*
+*.log
 
-# Salidas del triage físico y temporales de subida
+# --- Salidas generadas por el sistema ---------------------------------------
+# Triage físico, reportes PDF y temporales de subida: se regeneran al correr.
 Auditoria_CACES/
 backend/Auditoria_CACES/
 backend/temp/
+temp_upload.pdf
+documentos_prueba/
 
-# Material de conocimiento de los agentes (PDFs, papers, docs institucionales): no versionar.
+# --- Binarios pesados (documentos fuente y ofimática) -----------------------
+# Todo PDF queda fuera: documentos de prueba, papers y reportes generados.
+*.pdf
+*.docx
+*.pptx
+*.xlsx
+*.doc
+*.ppt
+*.xls
+*.zip
+*.rar
+# Archivos de bloqueo temporal de Word/Excel (~$Documento.docx)
+~$*
+
+# --- Basura del sistema operativo -------------------------------------------
+desktop.ini
+Thumbs.db
+.DS_Store
+
+# ==========================================================================
+# Excepciones: carpetas que NO se versionan salvo su documentación en texto
+# ==========================================================================
+
+# Corpus bibliográfico y manuscrito (~119 MB de PDF/DOCX/PPTX): fuera del repo.
+# Se conservan sólo los .md que describen el corpus (LEEME.md, MOTIVOS.md…).
+Documentos para la tesis/**
+!Documentos para la tesis/**/
+!Documentos para la tesis/**/*.md
+
+# Material de conocimiento de los agentes (PDFs, papers, docs institucionales).
 # Se conservan sólo los README.md que describen qué colocar en cada carpeta.
 docs/conocimiento/**
 !docs/conocimiento/**/
 !docs/conocimiento/**/README.md
+
+# --- Configuración de Claude Code -------------------------------------------
+# El .gitignore global de la máquina (C:/Users/User/.gitignore_global) ignora
+# `.claude/` entero, lo que dejaba fuera del repo la mitad del roster de
+# agentes. Se reincorpora aquí: el roster es documentación del proyecto.
+!.claude/
+.claude/*
+!.claude/agents/
+!.claude/agents/*.md
+!.claude/settings.json
+# Lo local de cada máquina (permisos, preferencias) sigue fuera.
+.claude/settings.local.json
+backend/.claude/
