@@ -9,12 +9,9 @@ import io
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-import completitud  # noqa: E402
-from completitud import ANCLA_DE, SECCION_DE, SILABOS, evaluar, faltantes  # noqa: E402
-from plantilla_silabo import PLANTILLA_SILABO  # noqa: E402
+from .process import completitud  # noqa: E402
+from .process.completitud import ANCLA_DE, SECCION_DE, SILABOS, evaluar, faltantes  # noqa: E402
+from .utils.plantilla_silabo import PLANTILLA_SILABO  # noqa: E402
 
 # --- Abrir ChromaDB una sola vez ------------------------------------------
 _BASE = None
