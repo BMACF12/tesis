@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { useAuth } from "./context/AuthContext";
 type Veredicto = "CUMPLE" | "CUMPLE PARCIALMENTE" | "NO CUMPLE";
 
 interface ElementoChecklist {
@@ -240,12 +241,21 @@ const TaskCard = ({ task }: { task: EnqueuedTask }) => {
 };
 
 export default function EvaluadorCACES() {
+  const { user, logout, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [enqueuedTasks, setEnqueuedTasks] = useState<EnqueuedTask[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Redirigir al login si no hay sesión
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/login");
+    }
+  }, [authLoading, user, router]);
 
   // Polling para revisar el estado de las tareas
   useEffect(() => {
@@ -289,6 +299,18 @@ export default function EvaluadorCACES() {
 
     return () => clearInterval(interval);
   }, [enqueuedTasks]);
+
+  // Mientras se carga el estado de auth o no hay usuario, mostrar spinner
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+        <svg className="animate-spin h-10 w-10 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+        </svg>
+      </div>
+    );
+  }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -387,6 +409,18 @@ export default function EvaluadorCACES() {
           </motion.button>
         )}
       </AnimatePresence>
+
+      {/* Sesión del usuario */}
+      <div className="absolute top-6 right-6 md:top-10 md:right-10 flex items-center gap-3 z-50">
+        <span className="hidden md:inline text-xs text-slate-500 truncate max-w-[200px]">{user.email}</span>
+        <button
+          onClick={logout}
+          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-rose-400 transition-colors font-medium px-3 py-1.5 rounded-full bg-slate-800/50 border border-slate-700/50 hover:border-rose-500/30 hover:bg-rose-500/10"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          Salir
+        </button>
+      </div>
 
       <div className="text-center mt-10 mb-8">
         <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 mb-4 tracking-tight">
