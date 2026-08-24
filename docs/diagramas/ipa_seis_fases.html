@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Productos de las seis fases IPA — diagramas Mermaid</title>
+<style>
+  :root{
+    --paper:#FFFFFF; --panel:#F9FAFB; --ink:#111827; --muted:#5B6673;
+    --rule:#E3E7EB; --navy:#172C68; --verde:#006644; --ocre:#92400E; --rojo:#B91C1C;
+    --serif:"Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
+    --sans:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --mono:"Cascadia Mono",Consolas,"SFMono-Regular",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);
+       line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:52px 26px 90px;
+        display:flex;flex-direction:column;gap:50px}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+           color:var(--muted);margin:0 0 10px}
+  h1{font-size:clamp(28px,4.2vw,42px);line-height:1.14;font-weight:600;margin:0;max-width:22ch}
+  .lede{font-size:17.5px;color:var(--muted);max-width:64ch;margin:16px 0 0}
+  .head-rule{height:2px;background:var(--ink);width:92px;margin-top:26px}
+
+  .avisos{background:var(--panel);border:1px solid var(--rule);border-radius:2px;
+          padding:18px 22px;font-family:var(--sans);font-size:14px;color:var(--muted)}
+  .avisos p{margin:0 0 10px}
+  .avisos p:last-child{margin:0}
+  .avisos b{color:var(--ink);font-weight:600}
+  .avisos a{color:var(--navy)}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px 24px;padding:16px 20px;
+          background:var(--panel);border:1px solid var(--rule);border-radius:2px}
+  .legend b{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+            color:var(--muted);font-weight:400;width:100%;margin-bottom:2px}
+  .key{display:flex;align-items:center;gap:9px;font-family:var(--sans);font-size:13px}
+  .sw{width:22px;height:12px;border-radius:2px;border:1.6px solid;flex:none}
+  .k1 .sw{border-color:var(--ocre);background:#FEF6E7}
+  .k2 .sw{border-color:var(--verde);background:#ECFDF5}
+  .k3 .sw{border-color:var(--navy);background:#EEF2FF}
+  .k4 .sw{border-color:var(--rojo);background:#FEF2F2}
+  .k5 .sw{border-color:#6B7280;background:#FFFFFF}
+
+  .toc{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:1px;
+       background:var(--rule);border:1px solid var(--rule)}
+  .toc a{background:var(--paper);padding:14px 16px;text-decoration:none;color:inherit;
+         display:flex;flex-direction:column;gap:5px}
+  .toc a:hover,.toc a:focus-visible{background:var(--panel)}
+  .toc a:focus-visible{outline:2px solid var(--navy);outline-offset:-2px}
+  .toc .n{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted)}
+  .toc .t{font-size:15px;line-height:1.3}
+
+  section{display:flex;flex-direction:column;gap:18px;scroll-margin-top:20px}
+  .phase-head{border-top:2px solid var(--ink);padding-top:16px;
+              display:flex;flex-direction:column;gap:8px}
+  h2{font-size:26px;line-height:1.2;font-weight:600;margin:0;max-width:36ch}
+  .claim{font-family:var(--sans);font-size:15px;color:var(--muted);max-width:72ch;margin:0}
+  .claim em{color:var(--ink);font-style:normal;font-weight:600}
+
+  figure{margin:0;display:flex;flex-direction:column;gap:12px}
+  .canvas{position:relative;overflow-x:auto;background:var(--panel);
+          border:1px solid var(--rule);border-radius:2px;padding:24px}
+  pre.mermaid{margin:0;font-family:var(--mono);font-size:12px;color:var(--muted);
+              white-space:pre;text-align:center}
+  pre.mermaid[data-processed] svg{max-width:100%;height:auto;display:block;margin:0 auto}
+  figcaption{font-family:var(--sans);font-size:13.5px;color:var(--muted);max-width:80ch;line-height:1.5}
+  figcaption b{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+               color:var(--ink);font-weight:400;display:block;margin-bottom:4px}
+
+  details{border:1px solid var(--rule);border-radius:2px;background:var(--paper)}
+  summary{cursor:pointer;padding:10px 14px;font-family:var(--mono);font-size:11px;
+          letter-spacing:.1em;text-transform:uppercase;color:var(--muted);list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"› ";color:var(--navy)}
+  details[open] summary::before{content:"⌄ "}
+  summary:focus-visible{outline:2px solid var(--navy);outline-offset:-2px}
+  .src{display:flex;flex-direction:column;gap:8px;padding:0 14px 14px}
+  .src pre{margin:0;overflow-x:auto;background:var(--panel);border:1px solid var(--rule);
+           padding:14px;font-family:var(--mono);font-size:12px;line-height:1.5;color:var(--ink)}
+  .copy{align-self:flex-start;font-family:var(--sans);font-size:13px;padding:7px 14px;
+        border:1px solid var(--navy);background:var(--paper);color:var(--navy);
+        border-radius:2px;cursor:pointer}
+  .copy:hover{background:#EEF2FF}
+  .copy:focus-visible{outline:2px solid var(--navy);outline-offset:2px}
+
+  footer{border-top:1px solid var(--rule);padding-top:20px;font-family:var(--sans);
+         font-size:13px;color:var(--muted);max-width:76ch}
+  @media print{
+    .toc,details,.copy{display:none}
+    .canvas{border:none;background:#fff;padding:0}
+    section{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Metodología · Automatización Inteligente de Procesos</p>
+  <h1>Los productos de las seis fases IPA</h1>
+  <p class="lede">Cada fase dejó un artefacto concreto. Estas siete figuras muestran el
+    mecanismo de cada uno: qué entra, quién decide qué, y qué sale. La fase 3 lleva dos figuras
+    porque produjo dos artefactos.</p>
+  <div class="head-rule"></div>
+</header>
+
+<div class="avisos">
+  <p><b>Vocabulario.</b> «Capa» se reserva para la vista técnica N-capas (figura D). El pipeline
+    de decisión se llama <b>auditoría en 3 etapas</b> y su filtro determinista,
+    <b>compuertas de seguridad Pre-LLM</b>. Es el mismo criterio de
+    <code>arquitectura_capas.md</code> y de la presentación de defensa.</p>
+  <p><b>OCR, no pdfminer.</b> Las figuras describen la versión que documenta el manuscrito.</p>
+  <p><b>Para exportar a PowerPoint:</b> abre «ver código Mermaid» bajo cada figura, cópialo,
+    pégalo en <a href="https://mermaid.live" target="_blank" rel="noopener">mermaid.live</a> y
+    descarga en <b>SVG</b> — entra como vector y se proyecta nítido. Esta página necesita
+    conexión para renderizar (carga Mermaid 11 desde jsDelivr).</p>
+</div>
+
+<div class="legend">
+  <b>Codificación, común a las siete figuras</b>
+  <span class="key k1"><span class="sw"></span>Lo ejecuta o lo decide una persona</span>
+  <span class="key k2"><span class="sw"></span>Paso determinista, en código</span>
+  <span class="key k3"><span class="sw"></span>Juicio del modelo de lenguaje</span>
+  <span class="key k4"><span class="sw"></span>Corte: descarte, rechazo o cuello de botella</span>
+  <span class="key k5"><span class="sw"></span>Infraestructura, entrada o salida</span>
+</div>
+
+<nav class="toc">
+  <a href="#f1"><span class="n">Fase 01</span><span class="t">El proceso manual documentado (AS-IS)</span></a>
+  <a href="#f2"><span class="n">Fase 02</span><span class="t">La delimitación: 5 indicadores de 10</span></a>
+  <a href="#f3a"><span class="n">Fase 03 · a</span><span class="t">El modelo TO-BE</span></a>
+  <a href="#f3b"><span class="n">Fase 03 · b</span><span class="t">La arquitectura N-capas</span></a>
+  <a href="#f4"><span class="n">Fase 04</span><span class="t">Extractor OCR y normativa vectorizada</span></a>
+  <a href="#f5"><span class="n">Fase 05</span><span class="t">El chord por lote</span></a>
+  <a href="#f6"><span class="n">Fase 06</span><span class="t">El protocolo experimental</span></a>
+</nav>
+
+<!-- ============ FASE 1 ============ -->
+<section id="f1">
+  <div class="phase-head">
+    <p class="eyebrow">Fase 01 · Identificación y entendimiento del proceso</p>
+    <h2>Producto: el proceso documental real, levantado tal como se ejecuta hoy</h2>
+    <p class="claim">Siete pasos encadenados, <em>todos humanos</em>. Tres de ellos son
+      cognitivos y concentran la latencia y el error: leer la norma, interpretarla contra la
+      evidencia y clasificar el archivo.</p>
+  </div>
+  <figure>
+    <div class="canvas">
+<pre class="mermaid">
+flowchart LR
+  IN(["Evidencias de la carrera&lt;br/&gt;y modelo CACES · PDF"]) --> P1["01 · Recibe las evidencias&lt;br/&gt;y el modelo CACES"]
+  P1 --> P2["02 · Inspecciona cada PDF&lt;br/&gt;visualmente"]
+  P2 --> P3["03 · Lee la norma del&lt;br/&gt;indicador en el modelo"]
+  P3 --> P4["04 · Compara la evidencia&lt;br/&gt;contra el estándar"]
+  P4 --> P5["05 · Clasifica por criterio&lt;br/&gt;e indicador"]
+  P5 --> P6["06 · Crea el árbol de carpetas&lt;br/&gt;en el repositorio"]
+  P6 --> P7["07 · Mueve el archivo y&lt;br/&gt;registra el cumplimiento"]
+  P7 --> OUT(["Evidencia archivada&lt;br/&gt;y bitácora manual"])
+  P4 -.->|"reproceso: faltante, ilegible&lt;br/&gt;o mal clasificado"| P2
+
+  classDef humano fill:#FEF6E7,stroke:#92400E,color:#111827
+  classDef corte fill:#FEF2F2,stroke:#B91C1C,stroke-width:2px,color:#111827
+  classDef infra fill:#FFFFFF,stroke:#6B7280,color:#111827
+  class P1,P2,P6,P7 humano
+  class P3,P4,P5 corte
+  class IN,OUT infra
+</pre>
+    </div>
+    <figcaption><b>Figura A · Fase 1</b>
+      El flujo AS-IS no tiene ni una sola bifurcación automática: la evidencia avanza porque
+      alguien la mira. Los tres pasos en rojo son los cuellos de botella que la Fase 2 evaluará
+      para automatizar, y la flecha punteada es el reproceso que hoy no deja rastro auditable.</figcaption>
+    <details><summary>ver código Mermaid</summary><div class="src"></div></details>
+  </figure>
+</section>
+
+<!-- ============ FASE 2 ============ -->
+<section id="f2">
+  <div class="phase-head">
+    <p class="eyebrow">Fase 02 · Análisis de viabilidad y priorización</p>
+    <h2>Producto: la delimitación del alcance — cinco indicadores evaluables de diez</h2>
+    <p class="claim">Tres condiciones aplicadas a los diez indicadores de Currículo y Docencia.
+      El recorte es <em>estructural, no de calendario</em>: cada indicador que sale lo hace por
+      una condición nombrada, y la segunda condición no descarta a ninguno.</p>
+  </div>
+  <figure>
+    <div class="canvas">
+<pre class="mermaid">
+flowchart LR
+  IN(["10 indicadores&lt;br/&gt;Currículo y Docencia&lt;br/&gt;1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10"])
+  IN --> C1{"1 · ¿Se materializa en un&lt;br/&gt;documento formal y autocontenido?"}
+  C1 -->|"no"| D1["5 · Metodología y recursos&lt;br/&gt;7 · Tecnologías TAC&lt;br/&gt;proceso de aula y medios heterogéneos:&lt;br/&gt;no hay un documento único que leer"]
+  C1 -->|"sí · quedan 8"| C2{"2 · ¿Se verifica leyendo&lt;br/&gt;el propio documento?"}
+  C2 -.->|"ningún indicador cae aquí"| N2(["lo que se materializa en un&lt;br/&gt;documento se verifica leyéndolo"])
+  C2 -->|"sí · quedan 8"| C3{"3 · ¿El juicio es&lt;br/&gt;cualitativo-declarativo?"}
+  C3 -->|"no"| D3["8 · Afinidad del personal&lt;br/&gt;9 · Titular permanente&lt;br/&gt;fórmula sobre datos SIIES y nóminas:&lt;br/&gt;es un cálculo, no una lectura"]
+  C3 -->|"sí · quedan 6"| C4{"¿Se instrumenta en&lt;br/&gt;esta versión?"}
+  C4 -.->|"parcial"| D4["10 · Evaluación del desempeño&lt;br/&gt;alcanzable sólo en su elemento&lt;br/&gt;declarativo; no se instrumenta"]
+  C4 -->|"sí"| OUT["ALCANCE DEL SISTEMA&lt;br/&gt;Indicadores 1 · 2 · 3 · 4 · 6&lt;br/&gt;los 5 que van a validación experimental"]
+
+  classDef maquina fill:#ECFDF5,stroke:#006644,stroke-width:2px,color:#111827
+  classDef corte fill:#FEF2F2,stroke:#B91C1C,color:#111827
+  classDef infra fill:#FFFFFF,stroke:#6B7280,color:#111827
+  class OUT maquina
+  class D1,D3 corte
+  class IN,N2,D4 infra
+</pre>
+    </div>
+    <figcaption><b>Figura B · Fase 2</b>
+      La criba hace visible por qué el sistema evalúa cinco indicadores y no diez: los
+      cuantitativos (8, 9) exigen un cálculo sobre datos externos y los de proceso (5, 7) no se
+      materializan en un documento. Es el argumento que sostiene el alcance del Capítulo IV.</figcaption>
+    <details><summary>ver código Mermaid</summary><div class="src"></div></details>
+  </figure>
+</section>
+
+<!-- ============ FASE 3a ============ -->
+<section id="f3a">
+  <div class="phase-head">
+    <p class="eyebrow">Fase 03 · Diseño del proceso inteligente · artefacto a</p>
+    <h2>Producto 1: el modelo TO-BE, con los puntos de control humano explícitos</h2>
+    <p class="claim">La persona conserva exactamente <em>dos</em> intervenciones —cargar la
+      evidencia y aprobar el dictamen—; los cinco pasos intermedios pasan al pipeline, y entre
+      ellos aparecen compuertas que descartan antes de seguir gastando cómputo.</p>
+  </div>
+  <figure>
+    <div class="canvas">
+<pre class="mermaid">
+flowchart TB
+  subgraph H["PERSONA — los dos puntos de control que quedan"]
+    direction LR
+    U1["El docente carga&lt;br/&gt;la evidencia · PDF"]
+    U2["La comisión revisa&lt;br/&gt;y aprueba el dictamen"]
+  end
+
+  subgraph M["PIPELINE IPA — en línea, por documento"]
+    direction LR
+    M1["Extracción de texto&lt;br/&gt;OCR"]
+    G1{"¿texto&lt;br/&gt;legible?"}
+    M2["Enrutado al indicador&lt;br/&gt;y consulta RAG"]
+    M3["Dictamen preliminar&lt;br/&gt;Llama 3.3 vía Groq"]
+    G2{"¿cumple el&lt;br/&gt;indicador?"}
+    M4["Archivado RPA&lt;br/&gt;árbol CACES en disco"]
+    M1 --> G1
+    G1 -->|"sí"| M2
+    M2 --> M3
+    M3 --> G2
+    G2 -->|"sí"| M4
+  end
+
+  subgraph X["CORTES — salidas por compuerta, siempre trazables"]
+    direction LR
+    X1["Entorno seguro de&lt;br/&gt;retención, con alerta"]
+    X2["Carpeta de documentos&lt;br/&gt;rechazados"]
+  end
+
+  subgraph O["BASE DE ORO — fuera de línea, una sola vez"]
+    direction LR
+    O1["Norma CACES 2024"] --> O2["Embeddings Gemini"] --> O3["ChromaDB"]
+  end
+
+  U1 -->|"PDF"| M1
+  G1 -->|"no"| X1
+  G2 -->|"no cumple"| X2
+  M4 -->|"dictamen y ruta final"| U2
+  U2 -.->|"observación: vuelve al entorno seguro"| X1
+  O3 -.->|"norma exacta del indicador"| M2
+
+  classDef humano fill:#FEF6E7,stroke:#92400E,color:#111827
+  classDef maquina fill:#ECFDF5,stroke:#006644,color:#111827
+  classDef llm fill:#EEF2FF,stroke:#172C68,color:#111827
+  classDef corte fill:#FEF2F2,stroke:#B91C1C,color:#111827
+  classDef infra fill:#FFFFFF,stroke:#6B7280,color:#111827
+  class U1,U2 humano
+  class M1,M2,M4,G1,G2 maquina
+  class M3 llm
+  class X1,X2 corte
+  class O1,O2,O3 infra
+</pre>
+    </div>
+    <figcaption><b>Figura C · Fase 3, artefacto a</b>
+      El TO-BE no elimina al humano: lo reubica en los extremos. Lo que cambia respecto a la
+      figura A es que los cinco pasos centrales dejan de ser cognitivos y quedan sujetos a dos
+      compuertas que producen una salida registrada incluso cuando el documento no avanza.</figcaption>
+    <details><summary>ver código Mermaid</summary><div class="src"></div></details>
+  </figure>
+</section>
+
+<!-- ============ FASE 3b ============ -->
+<section id="f3b">
+  <div class="phase-head">
+    <p class="eyebrow">Fase 03 · Diseño del proceso inteligente · artefacto b</p>
+    <h2>Producto 2: la arquitectura N-capas del sistema</h2>
+    <p class="claim">Cinco capas con una responsabilidad cada una. La capa de lógica de negocio
+      ejecuta la auditoría en tres etapas, y las compuertas Pre-LLM cortan <em>antes</em> de la
+      etapa cara: si el documento no supera los hechos, el modelo no se llega a invocar.</p>
+  </div>
+  <figure>
+    <div class="canvas">
+<pre class="mermaid">
+flowchart TB
+  subgraph C1["CAPA 1 — PRESENTACIÓN"]
+    UI["Next.js / React&lt;br/&gt;Carga por lotes, cola de tareas&lt;br/&gt;y semáforos de resultado"]
+  end
+
+  subgraph C2["CAPA 2 — APLICACIÓN"]
+    API["FastAPI + Pydantic&lt;br/&gt;POST /evaluar_documento · GET /status"]
+  end
+
+  subgraph C3["CAPA 3 — LÓGICA DE NEGOCIO · auditoría en 3 etapas"]
+    direction LR
+    E1["ETAPA 1 · Hechos&lt;br/&gt;Compuertas de seguridad Pre-LLM&lt;br/&gt;léxico, plantilla, pertinencia, campos"]
+    E2["ETAPA 2 · Juicio&lt;br/&gt;LLM + RAG&lt;br/&gt;sólo el checklist de elementos"]
+    E3["ETAPA 3 · Veredicto&lt;br/&gt;determinista, en código&lt;br/&gt;porcentaje y triage"]
+    E1 -->|"supera las compuertas"| E2
+    E2 --> E3
+  end
+
+  subgraph C4["CAPA 4 — INTEGRACIÓN"]
+    direction LR
+    GROQ["Groq · Llama 3.3 70B&lt;br/&gt;Inferencia del dictamen"]
+    EMB["Google · gemini-embedding-001&lt;br/&gt;Vectorización de la normativa"]
+  end
+
+  subgraph C5["CAPA 5 — PERSISTENCIA"]
+    direction LR
+    RD[("Redis&lt;br/&gt;Broker del lote&lt;br/&gt;y resultados")]
+    CH[("ChromaDB&lt;br/&gt;Base de Oro:&lt;br/&gt;normativa CACES 2024")]
+    FS[("Sistema de archivos&lt;br/&gt;Carpetas por indicador&lt;br/&gt;y reportes PDF")]
+  end
+
+  RECH["PLANTILLA NO RECONOCIDA · NO CUMPLE&lt;br/&gt;el modelo de lenguaje no se llega a invocar"]
+
+  UI -->|"HTTP / JSON · estado cada 3 s"| API
+  API -->|"encola el lote como chord"| RD
+  RD -->|"el worker Celery consume cada tarea"| E1
+  E1 -->|"lee la norma por metadato exacto"| CH
+  E2 -->|"prompt: norma, hechos y documento"| GROQ
+  E3 -->|"copia el PDF y genera el reporte"| FS
+  E3 -->|"devuelve el dictamen"| RD
+  E1 -.->|"corte Pre-LLM"| RECH
+  RECH -.->|"se archiva y se reporta igual"| FS
+  EMB -.->|"ingesta previa de la Base de Oro"| CH
+
+  classDef maquina fill:#ECFDF5,stroke:#006644,color:#111827
+  classDef llm fill:#EEF2FF,stroke:#172C68,color:#111827
+  classDef corte fill:#FEF2F2,stroke:#B91C1C,stroke-width:2px,color:#111827
+  classDef infra fill:#FFFFFF,stroke:#6B7280,color:#111827
+  class E1,E3 maquina
+  class E2 llm
+  class RECH corte
+  class UI,API,GROQ,EMB,RD,CH,FS infra
+  style C3 fill:#F9FAFB,stroke:#006644,stroke-width:2px
+  style C1 fill:#F9FAFB,stroke:#172C68
+  style C2 fill:#F9FAFB,stroke:#172C68
+  style C4 fill:#F9FAFB,stroke:#172C68
+  style C5 fill:#F9FAFB,stroke:#006644
+</pre>
+    </div>
+    <figcaption><b>Figura D · Fase 3, artefacto b</b>
+      La flecha punteada de la etapa 1 al rechazo es el aporte defendible de la arquitectura: un
+      documento que no supera las compuertas se archiva y se reporta <em>sin llegar nunca a la
+      capa 4</em>. El modelo no se invoca, no gasta cuota y no puede alucinar sobre un documento
+      que no leyó.</figcaption>
+    <details><summary>ver código Mermaid</summary><div class="src"></div></details>
+  </figure>
+</section>
+
+<!-- ============ FASE 4 ============ -->
+<section id="f4">
+  <div class="phase-head">
+    <p class="eyebrow">Fase 04 · Desarrollo e integración de componentes inteligentes</p>
+    <h2>Producto: el extractor documental con OCR y la normativa CACES vectorizada</h2>
+    <p class="claim">Dos construcciones con ritmos distintos: la normativa se vectoriza
+      <em>una sola vez</em> y queda esperando; el extractor corre <em>en cada documento</em>.
+      Sólo se encuentran en el momento de la recuperación.</p>
+  </div>
+  <figure>
+    <div class="canvas">
+<pre class="mermaid">
+flowchart LR
+  subgraph OFF["FUERA DE LÍNEA — se paga una sola vez"]
+    direction LR
+    B1["Norma CACES 2024&lt;br/&gt;caces_2024_oficial.txt"] --> B2["Un documento por indicador&lt;br/&gt;con marcadores y campos"]
+    B2 --> B3["Vectorización&lt;br/&gt;gemini-embedding-001"] --> B4[("ChromaDB&lt;br/&gt;almacén vectorial")]
+  end
+
+  subgraph ON["EN LÍNEA — se paga en cada documento"]
+    direction LR
+    A1["Evidencia · PDF&lt;br/&gt;sílabo, malla o guía"] --> A2["Extracción de texto&lt;br/&gt;OCR: Poppler y Tesseract"]
+    A2 --> A3["Texto normalizado&lt;br/&gt;y campos localizados"]
+  end
+
+  A3 -->|"consulta por indicador"| R["Recuperación del contexto&lt;br/&gt;normativo del indicador"]
+  B4 -->|"la norma del indicador, completa"| R
+  R --> P["Prompt del auditor&lt;br/&gt;norma, hechos y documento"]
+
+  classDef maquina fill:#ECFDF5,stroke:#006644,color:#111827
+  classDef llm fill:#EEF2FF,stroke:#172C68,color:#111827
+  classDef infra fill:#FFFFFF,stroke:#6B7280,color:#111827
+  class A1,A2,A3,R maquina
+  class P llm
+  class B1,B2,B3,B4 infra
+  style OFF fill:#F9FAFB,stroke:#6B7280
+  style ON fill:#F9FAFB,stroke:#006644,stroke-width:2px
+</pre>
+    </div>
+    <figcaption><b>Figura E · Fase 4</b>
+      Separar las dos vías es lo que hace barato el flujo diario: el coste de vectorizar la
+      normativa se paga una vez, y cada documento sólo paga su propia extracción y una consulta
+      al almacén vectorial. La norma de cada indicador se recupera completa, no en fragmentos.</figcaption>
+    <details><summary>ver código Mermaid</summary><div class="src"></div></details>
+  </figure>
+</section>
+
+<!-- ============ FASE 5 ============ -->
+<section id="f5">
+  <div class="phase-head">
+    <p class="eyebrow">Fase 05 · Orquestación y automatización del proceso</p>
+    <h2>Producto: la orquestación por lotes — FastAPI, Celery y Redis con un chord</h2>
+    <p class="claim">El chord resuelve el problema de escala con una sola pieza: lanza los N
+      documentos en paralelo y <em>dispara el reporte ejecutivo sólo cuando la última tarea
+      termina</em>. Una tarea que falla devuelve un error en lugar de lanzarlo, para no derribar
+      la barrera.</p>
+  </div>
+  <figure>
+    <div class="canvas">
+<pre class="mermaid">
+flowchart LR
+  F["Frontend&lt;br/&gt;lote de N PDFs"] -->|"POST /evaluar_documento"| API["FastAPI&lt;br/&gt;valida y delega"]
+  API -->|"chord: grupo de tareas y consolidación"| CH{{"chord&lt;br/&gt;una tarea por documento"}}
+
+  CH --> T1["Tarea 1 · documento 1&lt;br/&gt;las 3 etapas del dictamen"]
+  CH --> T2["Tarea 2 · documento 2&lt;br/&gt;las 3 etapas del dictamen"]
+  CH --> T3["Tarea 3 · documento 3&lt;br/&gt;falla tras 3 reintentos"]
+  CH --> TN["Tarea N · documento N&lt;br/&gt;las 3 etapas del dictamen"]
+
+  T1 --> BAR{{"BARRERA DEL CHORD&lt;br/&gt;espera a la última tarea"}}
+  T2 --> BAR
+  T3 -->|"devuelve un dict ERROR en vez de lanzarlo:&lt;br/&gt;la barrera no aborta el lote"| BAR
+  TN --> BAR
+
+  BAR --> REP["generar_reporte_ejecutivo&lt;br/&gt;tarea de consolidación"]
+  REP --> PDF(["PDF resumen del lote"])
+
+  API -.->|"encola"| RD[("Redis&lt;br/&gt;cola de tareas y&lt;br/&gt;almacén de resultados")]
+  T1 -.->|"resultado de cada tarea"| RD
+  RD -.->|"GET /status cada 3 s"| F
+
+  classDef humano fill:#FEF6E7,stroke:#92400E,color:#111827
+  classDef maquina fill:#ECFDF5,stroke:#006644,color:#111827
+  classDef corte fill:#FEF2F2,stroke:#B91C1C,stroke-width:2px,color:#111827
+  classDef infra fill:#FFFFFF,stroke:#6B7280,color:#111827
+  class F humano
+  class T1,T2,TN,REP,CH,BAR maquina
+  class T3 corte
+  class API,RD,PDF infra
+</pre>
+    </div>
+    <figcaption><b>Figura F · Fase 5</b>
+      La barrera es el punto del diagrama: sin ella, el reporte ejecutivo tendría que esperar a
+      las tareas en serie o dispararse incompleto. El camino en rojo muestra por qué un documento
+      defectuoso no arrastra al lote entero.</figcaption>
+    <details><summary>ver código Mermaid</summary><div class="src"></div></details>
+  </figure>
+</section>
+
+<!-- ============ FASE 6 ============ -->
+<section id="f6">
+  <div class="phase-head">
+    <p class="eyebrow">Fase 06 · Pruebas, validación y control</p>
+    <h2>Producto: el protocolo experimental contra el ground truth</h2>
+    <p class="claim">El mismo corpus recorre <em>dos rutas independientes</em> —el sistema y el
+      criterio experto— y sólo se encuentran en la comparación. De ahí salen las cuatro
+      dimensiones ISO/IEC 25010 con sus rangos de aprobación, fijados antes de medir.</p>
+  </div>
+  <figure>
+    <div class="canvas">
+<pre class="mermaid">
+flowchart LR
+  CO(["Corpus documental etiquetado&lt;br/&gt;sílabos, mallas y guías,&lt;br/&gt;más archivos trampa"])
+  CO -->|"ruta automática"| S["Sistema&lt;br/&gt;pipeline completo, sin ayuda"]
+  CO -->|"ruta humana, a ciegas"| X["Docentes expertos&lt;br/&gt;criterio de referencia"]
+  S --> P["Predicción&lt;br/&gt;indicador, veredicto,&lt;br/&gt;checklist y campos vacíos"]
+  X --> GT["Ground truth&lt;br/&gt;etiquetas de referencia"]
+  P --> CMP{{"Comparación&lt;br/&gt;documento a documento"}}
+  GT --> CMP
+
+  CMP --> M1["1 · Fiabilidad estructural&lt;br/&gt;Índice de Jaccard 0-1000&lt;br/&gt;óptimo 900 o más"]
+  CMP --> M2["2 · Adecuación funcional&lt;br/&gt;Exactitud y precisión por lote&lt;br/&gt;óptimo 90 % o más"]
+  CMP --> M3["3 · Análisis cognitivo granular&lt;br/&gt;Exactitud por sección, multietiqueta&lt;br/&gt;óptimo 90 % o más"]
+  CMP --> M4["4 · Eficiencia de desempeño&lt;br/&gt;Throughput y latencia&lt;br/&gt;más de 2 doc/min · ráfagas de 20"]
+
+  classDef humano fill:#FEF6E7,stroke:#92400E,color:#111827
+  classDef maquina fill:#ECFDF5,stroke:#006644,color:#111827
+  classDef infra fill:#FFFFFF,stroke:#6B7280,color:#111827
+  class X,GT humano
+  class S,P,CMP maquina
+  class CO,M1,M2,M3,M4 infra
+</pre>
+    </div>
+    <figcaption><b>Figura G · Fase 6</b>
+      La independencia de las dos rutas es la condición de validez del experimento: el sistema no
+      ve las etiquetas y el experto no ve el dictamen. Los cuatro rangos de la derecha son los
+      criterios de aprobación de las tablas 9 y 10 del manuscrito.</figcaption>
+    <details><summary>ver código Mermaid</summary><div class="src"></div></details>
+  </figure>
+</section>
+
+<footer>
+  Las siete figuras se derivan del Capítulo III del manuscrito (implementación de la metodología
+  IPA por fases) y del código del sistema. Cada una está pensada para leerse sola en una
+  diapositiva: un producto, un mecanismo, una afirmación. Convive con
+  <code>arquitectura_capas.md</code>, que profundiza sólo en la figura D.
+</footer>
+
+</div>
+
+<script type="module">
+  // Se captura el código fuente ANTES de que Mermaid sustituya el contenido por el SVG.
+  const bloques = [...document.querySelectorAll('pre.mermaid')];
+  const fuentes = bloques.map(el => el.textContent.trim());
+
+  bloques.forEach((el, i) => {
+    const caja = el.closest('figure').querySelector('details .src');
+    if (!caja) return;
+    const pre = document.createElement('pre');
+    pre.textContent = fuentes[i];
+    const btn = document.createElement('button');
+    btn.className = 'copy';
+    btn.type = 'button';
+    btn.textContent = 'Copiar para mermaid.live';
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(fuentes[i]);
+        btn.textContent = 'Copiado';
+      } catch {
+        btn.textContent = 'Selecciona y copia a mano';
+      }
+      setTimeout(() => { btn.textContent = 'Copiar para mermaid.live'; }, 2200);
+    });
+    caja.append(btn, pre);
+  });
+
+  try {
+    const mermaid = (await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')).default;
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      flowchart: { htmlLabels: true, curve: 'basis', nodeSpacing: 45, rankSpacing: 60, padding: 12 },
+      themeVariables: {
+        fontFamily: 'Segoe UI, system-ui, sans-serif',
+        fontSize: '14px',
+        lineColor: '#4B5563',
+        primaryTextColor: '#111827',
+        clusterBkg: '#F9FAFB',
+        clusterBorder: '#9CA3AF'
+      }
+    });
+  } catch (e) {
+    document.querySelectorAll('.canvas').forEach(c => {
+      const aviso = document.createElement('p');
+      aviso.style.cssText = 'font-family:var(--sans);font-size:13px;color:#B91C1C;margin:0 0 12px';
+      aviso.textContent = 'No se pudo cargar Mermaid (hace falta conexión). El código de abajo sigue siendo válido: pégalo en mermaid.live.';
+      c.prepend(aviso);
+    });
+  }
+</script>
+</body>
+</html>
