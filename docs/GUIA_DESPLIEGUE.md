@@ -41,7 +41,7 @@ Para maximizar los planes gratuitos (*Free Tier*) sin costos de infraestructura:
 
 Antes de comenzar, asegúrate de tener a mano:
 
-1. **Cuenta de GitHub:** Con el código del repositorio subido en un repositorio público o privado.
+1. **Cuenta de GitHub:** Con el código del repositorio en [Haptax/tesis_portafolio](https://github.com/Haptax/tesis_portafolio).
 2. **Groq API Key:** [console.groq.com/keys](https://console.groq.com/keys) (Plan gratuito con cuota generosa de `llama-3.3-70b-versatile`).
 3. **Google Gemini API Key:** [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) (Plan gratuito para `models/gemini-embedding-001`).
 
@@ -49,15 +49,15 @@ Antes de comenzar, asegúrate de tener a mano:
 
 ## 3. Paso a Paso: Despliegue del Backend
 
-### Opción Recomendada: Render.com (Free Web Service con Docker)
+### Despliegue en Render.com (Free Web Service con Docker)
 
 1. Regístrate o inicia sesión en [Render.com](https://render.com).
 2. Haz clic en **New +** y selecciona **Web Service**.
-3. Conecta tu repositorio de GitHub (`tesis`).
+3. Conecta tu repositorio de GitHub: `Haptax/tesis_portafolio`.
 4. Configura los siguientes campos:
-   - **Name:** `auditor-caces-api` (o el nombre que elijas).
+   - **Name:** `tesis-backend` (o el subdominio asignado, ej: `tesis-ec9m`).
    - **Region:** Elige la más cercana (e.g. *Ohio (US East)* u *Oregon (US West)*).
-   - **Branch:** `main` (o tu rama principal).
+   - **Branch:** `main` (o `portafolioMiguel`).
    - **Root Directory:** Deja en blanco o pon `backend` (o usa el Dockerfile de la raíz/backend).
    - **Runtime:** Selecciona **Docker**.
    - **Dockerfile Path:** `backend/Dockerfile`.
@@ -81,16 +81,16 @@ Antes de comenzar, asegúrate de tener a mano:
 
 1. Inicia sesión en [Vercel](https://vercel.com) con tu cuenta de GitHub.
 2. Haz clic en **Add New...** $\rightarrow$ **Project**.
-3. Importa tu repositorio `tesis`.
+3. Importa tu repositorio: `Haptax/tesis_portafolio`.
 4. En la configuración del proyecto:
    - **Framework Preset:** `Next.js`.
-   - **Root Directory:** Haz clic en *Edit* y selecciona la carpeta `frontend`.
+   - **Root Directory:** Haz clic en *Edit* y selecciona la carpeta `frontend` (sin barra final).
 5. Despliega la sección **Environment Variables** y añade:
    | Clave | Valor |
    |---|---|
-   | `NEXT_PUBLIC_API_URL` | La URL de tu backend en Render (ej: `https://auditor-caces-api.onrender.com`) |
+   | `NEXT_PUBLIC_API_URL` | La URL de tu backend en Render (ej: `https://tesis-ec9m.onrender.com`) |
 6. Haz clic en **Deploy**.
-7. En aproximadamente 1 minuto, Vercel te entregará la URL pública de tu aplicación (ej: `https://auditor-caces.vercel.app`).
+7. En aproximadamente 1 minuto, Vercel te entregará la URL pública de tu aplicación.
 
 ---
 

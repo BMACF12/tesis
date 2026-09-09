@@ -1,207 +1,202 @@
-# Auditor IA — Evaluación automatizada de evidencias CACES
+# Auditor IA — Evaluación Automatizada de Evidencias CACES
 
-Sistema que clasifica, audita y archiva evidencias documentales de acreditación (perfiles de
-egreso, proyectos curriculares, mallas, sílabos y guías de laboratorio) contra la normativa
-del CACES (Ecuador, 2024).
+Sistema que clasifica, audita y archiva evidencias documentales de acreditación universitaria (perfiles de
+egreso, proyectos curriculares, mallas curriculares, sílabos y guías de laboratorio) contra la normativa
+oficial del **CACES (Ecuador, 2024)** para la carrera de **Ingeniería de Software** de la **Universidad de las Fuerzas Armadas ESPE**.
 
-Por cada PDF produce un dictamen estructurado, un reporte individual en PDF y lo mueve a la
-carpeta de su indicador. Al terminar un lote genera un reporte ejecutivo global.
-
-**Capas:** Next.js (UI) → FastAPI (API) → Redis (cola) → Celery (worker) → ChromaDB (RAG) +
-Groq / Llama 3.3 (dictamen) + Gemini (embeddings).
+Por cada documento PDF subido produce un dictamen estructurado en JSON, un reporte individual en PDF y lo mueve físicamente a la
+carpeta de su indicador correspondiente. Al terminar un lote de auditoría, genera un reporte ejecutivo global consolidado.
 
 ---
 
-## 1. Cómo evalúa: tres capas
+## 1. Arquitectura y Modelo de Decisión en Tres Capas
 
-El sistema separa **hechos** de **juicios**. Es la decisión de diseño central.
+El principio rector del sistema es la **separación estricta de hechos verificables y juicios cualitativos**:
 
-**Capa 1 — Hechos (determinista, sin LLM).** Extracción del PDF conservando coordenadas,
-verificación de la plantilla por sus marcadores, pertinencia a la carrera y detección de
-campos sin llenar. Todo esto son datos verificables, y pedírselos al LLM producía
-alucinaciones: declaraba vacíos campos que estaban llenos y afirmaba pertenencias
-inexistentes, porque el extractor le entregaba las tablas desordenadas.
+```
+[Documento PDF]
+       │
+       ▼
+┌─────────────────────────────────────────────────────────────┐
+│ CAPA 1 — HECHOS (Determinista, sin LLM)                     │
+│ • Extracción por coordenadas espaciales con pdfminer.six   │
+│ • Verificación de marcadores de plantilla oficial           │
+│ • Validación de pertinencia a la carrera (44 asignaturas)   │
+│ • Detección de campos obligatorios sin llenar               │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+            ┌──────────────────┴──────────────────┐
+            │ ¿Pasa compuertas de cortocircuito?  │
+            └──┬───────────────────────────────┬──┘
+            SÍ │                            NO │ (Plantilla inválida, ajeno
+               ▼                               ▼  a la carrera, o vacío >50%)
+┌──────────────────────────────┐ ┌──────────────────────────────┐
+│ CAPA 2 — JUICIO (LLM Groq)   │ │ Veredicto Inmediato          │
+│ • RAG híbrido en ChromaDB    │ │ (0 tokens consumidos)        │
+│ • Evaluación del checklist   │ └──────────────┬───────────────┘
+│   normativo con citas        │                │
+└──────────────┬───────────────┘                │
+               │                                │
+               ▼                                ▼
+┌─────────────────────────────────────────────────────────────┐
+│ CAPA 3 — VEREDICTO DETERMINISTA Y TRIAGE                    │
+│ • Cálculo matemático del puntaje y veredicto final          │
+│ • Generación de reportes PDF vectoriales con fpdf2          │
+│ • Enrutamiento físico a carpetas y renombrado canónico      │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Capa 2 — Juicio (LLM).** Recibe la norma recuperada de ChromaDB, los hechos ya verificados
-y el documento. Devuelve únicamente el checklist con su cita textual y el diagnóstico.
-
-**Capa 3 — Veredicto (determinista).**
-
-| Condición | Veredicto |
-|---|---|
-| No usa la plantilla oficial del indicador | `PLANTILLA NO RECONOCIDA` |
-| No pertenece a la carrera | `NO CUMPLE` (0%) |
-| Más de la mitad de los campos obligatorios en blanco | `NO CUMPLE` |
-| Elementos cumplidos ≤ 50% | `NO CUMPLE` |
-| ≥ 70% y ningún campo sin llenar | `CUMPLE` |
-| Resto | `CUMPLE PARCIALMENTE` |
-
-Si la plantilla no es válida o el documento es de otra carrera, **no se llama al LLM**: el
-veredicto se emite sin consumir tokens.
-
----
-
-## 2. Extracción: por qué no se usa OCR
-
-Los documentos institucionales conservan capa de texto nativa; no son escaneos. Ejecutar OCR
-sobre ellos multiplica por 18 el tiempo de extracción (28 s frente a 1,5 s por sílabo),
-degrada los códigos de asignatura (`EXCTA0301` se lee `EXCTAO301`), pierde las etiquetas
-rotadas de la malla (los ocho PAO) y **colapsa la tabla de datos generales en una sola
-línea**, de modo que resulta imposible asociar cada etiqueta con su valor.
-
-Por eso la ruta principal usa `pdfminer.six` —el mismo motor que `unstructured` emplea
-internamente para PDFs con texto— pidiéndole las coordenadas que aquél descarta. El OCR de
-`unstructured` queda como respaldo, y sólo se activa ante un PDF escaneado.
-
-La malla curricular, que es un diagrama apaisado, se reconstruye celda por celda: una línea
-por asignatura con su código, nombre, prerrequisito, horas y créditos.
-
----
-
-## 3. Requisitos
-
-| Software | Versión | Necesario para |
+### Tabla de Veredictos
+| Condición | Veredicto | Consumo de Tokens |
 |---|---|---|
-| Python | 3.11 | Backend y worker |
-| Node.js | LTS | Frontend |
-| Docker Desktop | cualquiera | Redis |
-
-**Poppler y Tesseract sólo hacen falta para el respaldo OCR**, es decir, para PDFs
-escaneados. Ninguno de los documentos institucionales probados los necesita.
+| No usa la plantilla oficial del indicador | `PLANTILLA NO RECONOCIDA` | **0 tokens** |
+| Asignatura ajena a la malla de Software | `NO CUMPLE` (0%) | **0 tokens** |
+| Más del 50% de campos obligatorios vacíos | `NO CUMPLE` | **0 tokens** |
+| Elementos fundamentales cumplidos $\le 50\%$ | `NO CUMPLE` | Juicio LLM |
+| $\ge 70\%$ y ningún campo obligatorio vacío | `CUMPLE` | Juicio LLM |
+| Resto de casos | `CUMPLE PARCIALMENTE` | Juicio LLM |
 
 ---
 
-## 4. Instalación
+## 2. Stack Tecnológico
 
-El entorno virtual vive en **la raíz del proyecto**, no dentro de `backend/`.
+| Componente | Tecnología | Rol |
+|---|---|---|
+| **Frontend Web** | **Next.js 16** + **TailwindCSS 4** + **Framer Motion** | Interfaz drag & drop, polling reactivo y visualización de dictámenes. |
+| **API Gateway** | **FastAPI** + **Pydantic v2** | Enrutamiento REST, validación multipart y despacho distribuido. |
+| **Worker / Cola** | **Celery 5.x** + **Redis** | Tareas en segundo plano con orquestación `chord` y `group`. |
+| **Base Vectorial** | **ChromaDB** + **Google Gemini Embeddings** | Almacenamiento persistente de la normativa ("Base de Oro"). |
+| **Modelo LLM** | **Groq API** (`llama-3.3-70b-versatile`, `temp=0`) | Inferencia de alta velocidad con salida estructurada tipada. |
+| **Extracción PDF** | **pdfminer.six** (con OCR fallback `unstructured`) | Parseo geométrico por coordenadas `(x0, y0, x1, y1)`. |
+| **Generación PDF** | **fpdf2** | Renderizado de reportes individuales y ejecutivos de lote. |
+
+---
+
+## 3. Despliegue en la Nube (100% Gratuito)
+
+El sistema está configurado para ejecutarse en plataformas *Free Tier* (Vercel + Render):
+
+- **Frontend en Vercel:** Conectado a la carpeta `frontend/` del repositorio [Haptax/tesis_portafolio](https://github.com/Haptax/tesis_portafolio).
+- **Backend en Render:** Contenedor Docker ([`backend/Dockerfile`](./backend/Dockerfile)) que arranca FastAPI, Celery Worker, Redis y la Base de Oro automáticamente en [`https://tesis-ec9m.onrender.com`](https://tesis-ec9m.onrender.com).
+- **Documentación de la API:** Accede a Swagger UI en vivo en [`https://tesis-ec9m.onrender.com/docs`](https://tesis-ec9m.onrender.com/docs).
+
+> Consulta la guía paso a paso completa en [**`docs/GUIA_DESPLIEGUE.md`**](./docs/GUIA_DESPLIEGUE.md).
+
+---
+
+## 4. Instalación y Ejecución Local
+
+### 1. Clonar el repositorio y crear el entorno virtual
+El entorno virtual vive en **la raíz del proyecto**:
 
 ```bash
-git clone <repo> tesis
+git clone https://github.com/Haptax/tesis_portafolio.git tesis
 cd tesis
 python -m venv venv
-.\venv\Scripts\activate          # macOS/Linux: source venv/bin/activate
+.\venv\Scripts\activate          # En Linux/macOS: source venv/bin/activate
 pip install -r backend/requirements.txt
 ```
 
-Crea `backend/.env`:
+### 2. Configurar variables de entorno
+Crea el archivo `backend/.env`:
 
 ```env
 GROQ_API_KEY=tu_api_key_de_groq
 GOOGLE_API_KEY=tu_api_key_de_gemini
+REDIS_URL=redis://localhost:6379/0
 ```
+
+### 3. Construir la Base de Oro (ChromaDB)
+```bash
+cd backend
+python scripts/crear_base_oro.py
+python scripts/ingestar_maestro.py
+```
+
+### 4. Iniciar los servicios
+En terminales separadas (con el entorno virtual activado):
+
+```bash
+# Terminal 1: Iniciar Redis con Docker
+docker run -d -p 6379:6379 --name redis-caces redis
+
+# Terminal 2: Iniciar la API FastAPI (desde backend/)
+cd backend
+uvicorn main:app --reload --port 8000
+
+# Terminal 3: Iniciar el Worker de Celery (desde backend/)
+cd backend
+celery -A services.tareas_ia worker --loglevel=info --pool=solo
+
+# Terminal 4: Iniciar el Frontend Next.js (desde frontend/)
+cd frontend
+npm install
+npm run dev
+```
+
+Abre `http://localhost:3000` en tu navegador.
 
 ---
 
-## 5. Construir la Base de Oro
+## 5. Banco de Pruebas y Evaluación Experimental (OE3)
+
+Para evaluar la precisión determinista y las compuertas de corte sin consumir cuota de tokens:
 
 ```bash
 cd backend
-python scripts/extraer_asignaturas.py "ruta/a/malla_oficial.pdf"   # sólo si cambia la malla
-python scripts/crear_base_oro.py                                   # un vector por indicador
-python scripts/ingestar_maestro.py                                 # documento maestro
-```
-
-`crear_base_oro.py` **borra y recrea** `chroma_data`, así que el orden importa. Repite ambos
-pasos cada vez que edites `data/caces_2024_oficial.txt`: el worker lee la norma desde
-ChromaDB, no desde el archivo.
-
-> Si el worker de Celery está corriendo, tendrá bloqueado `chroma_data` y el script abortará
-> con un mensaje claro. Párale primero.
-
-`data/asignaturas_malla.txt` contiene las 44 asignaturas de la malla vigente y es la fuente
-de verdad para decidir si un sílabo pertenece a la carrera.
-
----
-
-## 6. Levantar el sistema
-
-```bash
-docker run -d -p 6379:6379 --name redis-caces redis   # 1. Redis
-uvicorn main:app --reload                              # 2. API (desde backend/)
-celery -A services.tareas_ia worker --loglevel=info --pool=solo   # 3. Worker (desde backend/)
-npm install && npm run dev                             # 4. Frontend (desde frontend/)
-```
-
-Abre `http://localhost:3000`, arrastra los PDFs y pulsa *Analizar y Clasificar*.
-
-> **El worker de Celery no recarga el código.** `uvicorn --reload` sí; el worker no. Cada vez
-> que toques `services/*.py` hay que pararlo con `Ctrl+C` y relanzarlo.
-
----
-
-## 7. Banco de pruebas
-
-Verifica toda la capa determinista sin gastar cuota de la API:
-
-```bash
 python scripts/banco_pruebas.py
 ```
 
-Comprueba enrutado al indicador, validez de plantilla, pertinencia y campos sin llenar sobre
-un corpus de documentos correctos, trampas y de otras carreras. Lo único que no cubre es el
-juicio del checklist, que es lo único que queda en manos del LLM.
-
----
-
-## 8. Estructura de salida
-
-```
-backend/Auditoria_CACES/
-├── Indicador_1_Perfil_de_egreso/
-├── Indicador_2_Proyecto_curricular/
-├── Indicador_3_Malla_curricular/
-├── Indicador_4_Syllabus/
-├── Indicador_6_Escenarios_de_practicas_formativas/
-├── 11_Documentos_Rechazados/        # no cumple, o de otra carrera
-├── 12_Plantilla_No_Reconocida/      # no es la plantilla oficial del indicador
-├── 98_Pendientes_Por_Cuota/         # sin defecto: se agotó la cuota de la API
-├── 99_Descarte_Errores/             # PDF ilegible
-└── Reportes_Ejecutivos/             # un PDF por lote
-```
-
----
-
-## 9. Problemas frecuentes
-
-**El worker usa código viejo.** Celery no recarga; párale y relánzalo.
-
-**Quedan tareas o resultados antiguos en Redis.**
+Para medir el acuerdo del checklist del LLM frente a expertos humanos (*ground truth*):
 
 ```bash
-celery -A services.tareas_ia purge -f            # sólo la cola
-docker exec -it redis-caces redis-cli FLUSHALL   # cola + resultados
+cd backend
+python scripts/evaluar_jaccard.py
 ```
-
-**Groq devuelve `429`.** Hay dos límites distintos. El de tokens por minuto se reintenta solo
-con la espera que indica la API. El de tokens por día (100.000 en el plan gratuito, unos 15
-sílabos) no se reintenta: el documento se aparta en `98_Pendientes_Por_Cuota` y basta con
-volver a subirlo cuando el contador se recargue.
-
-**El frontend muestra `EN COLA` para siempre.** Los resultados de Celery caducan en Redis a
-las 24 h.
-
-**`ModuleNotFoundError` al lanzar el worker.** Estás usando el venv equivocado: el bueno está
-en la raíz (`tesis/venv`), no en `tesis/backend/venv`.
 
 ---
 
-## 10. Limitaciones conocidas
+## 6. Estructura del Repositorio
 
-- **El sílabo de la ESPE no declara la carrera.** La pertinencia se decide comparando la
-  asignatura contra la malla vigente: si la asignatura no consta en la malla, el sílabo no
-  es evidencia de esta carrera. Acierta en 23 de 24 sílabos etiquetados. El único fallo es
-  `APLICACIONES MOVILES`, asignatura que existe a la vez en la malla de Software y en la de
-  Tecnologías de Redes y Telecomunicaciones: sin un campo que declare la carrera, los dos
-  sílabos son indistinguibles.
-- **El LLM no es determinista.** Aunque `temperature=0`, Llama en Groq devuelve textos
-  distintos entre corridas del mismo documento. Por eso el veredicto, la pertinencia y los
-  campos vacíos se calculan en código: sólo el checklist y el diagnóstico varían.
-- **Los indicadores 1 y 2 se evalúan sólo con criterios semánticos.** El perfil de egreso y
-  el proyecto curricular son prosa, sin plantilla de campos etiquetados que verificar.
-- **En un PDF escaneado no se pueden verificar los campos.** El OCR no conserva la
-  disposición de la tabla, así que la detección de campos vacíos se desactiva y el sistema
-  se lo dice al modelo explícitamente en lugar de afirmar que no hay campos.
-- **Una sola carrera.** El documento maestro y la lista de asignaturas están fijados a
-  Ingeniería de Software.
-- **Sin persistencia.** El único registro duradero son los PDFs con marca de tiempo y sus
-  reportes. Los dictámenes estructurados viven en Redis y caducan a las 24 h.
+```
+tesis/
+├── README.md                     # Documentación general y puesta en marcha
+├── GEMINI.md                     # Guía maestra para Google Antigravity
+├── AGENTS.md                     # Protocolo y gobernanza de agentes
+├── backend/
+│   ├── Dockerfile                # Imagen Docker multi-servicio para la nube
+│   ├── start.sh                  # Script de arranque (Chroma + Celery + FastAPI)
+│   ├── main.py                   # API FastAPI Gateway y CORS
+│   ├── api/rutas.py              # Endpoints HTTP (/evaluar_documento/, /status/)
+│   ├── services/
+│   │   ├── extraccion.py         # Capa 1: Extracción geométrica por coordenadas
+│   │   ├── tareas_ia.py          # Capas 1, 2 y 3: Pipeline y tareas Celery
+│   │   ├── orchestrator_service.py # Triage físico y generador PDF individual
+│   │   └── pdf_generator_ejecutivo.py # Reporte global consolidado de lote
+│   ├── data/
+│   │   ├── caces_2024_oficial.txt # Base de Oro: normativa CACES 2024
+│   │   └── asignaturas_malla.txt # 44 asignaturas oficiales de Software
+│   └── scripts/                  # Scripts de inicialización y evaluación
+├── frontend/
+│   ├── app/                      # Next.js App Router (Dashboard, Login, Polling)
+│   └── package.json
+├── docs/
+│   ├── GUIA_DESPLIEGUE.md        # Manual de despliegue en Vercel + Render
+│   ├── ANALISIS_SISTEMA_Y_PATRONES.md # Análisis arquitectónico y patrones
+│   ├── ARQUITECTURA.md           # Flujo de datos y componentes
+│   ├── INDICADORES.md            # Fichas técnicas de indicadores CACES
+│   └── PLAN_EVALUACION.md        # Métricas y protocolo experimental OE3
+└── .agents/
+    ├── agents/                   # Roster de 16 subagentes especializados
+    ├── rules/                    # Reglas generales del workspace
+    └── skills/                   # Runbooks y procedimientos ejecutables
+```
+
+---
+
+## 7. Documentación Adicional
+
+- [**Guía de Despliegue en la Nube (Vercel + Render)**](./docs/GUIA_DESPLIEGUE.md)
+- [**Análisis Exhaustivo del Sistema y Patrones de Diseño**](./docs/ANALISIS_SISTEMA_Y_PATRONES.md)
+- [**Fichas Técnicas de Indicadores CACES**](./docs/INDICADORES.md)
+- [**Protocolo Experimental y Métricas de Evaluación**](./docs/PLAN_EVALUACION.md)
