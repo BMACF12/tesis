@@ -32,7 +32,7 @@ from services.recorte_proyecto import recortar_proyecto
 
 load_dotenv()
 
-URL_REDIS = "redis://localhost:6379/0"
+URL_REDIS = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 celery_app = Celery("orquestador", broker=URL_REDIS, backend=URL_REDIS)
 
 

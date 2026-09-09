@@ -1,0 +1,12 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.env
+venv
+.venv
+chroma_data
+Auditoria_CACES
+temp
+.git
+.gitignore

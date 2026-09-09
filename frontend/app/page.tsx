@@ -30,6 +30,8 @@ interface EnqueuedTask {
   error?: string;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 // Función para obtener los colores semánticos
 const getThemeVars = (veredicto: Veredicto) => {
   switch (veredicto) {
@@ -274,7 +276,7 @@ export default function EvaluadorCACES() {
               if (t.status === "COMPLETADO" || t.status === "ERROR") return t;
 
               try {
-                const res = await fetch(`http://127.0.0.1:8000/status/${t.task_id}`);
+                const res = await fetch(`${API_BASE_URL}/status/${t.task_id}`);
                 const data = await res.json();
 
                 if (data.status === "COMPLETADO") {
@@ -359,7 +361,7 @@ export default function EvaluadorCACES() {
         formData.append("files", file);
       });
 
-      const response = await fetch("http://127.0.0.1:8000/evaluar_documento/", {
+      const response = await fetch(`${API_BASE_URL}/evaluar_documento/`, {
         method: "POST",
         body: formData,
       });
